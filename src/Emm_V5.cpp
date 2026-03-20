@@ -16,7 +16,7 @@ void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 4);
+  Serial1.write(cmd, 4);
 }
 
 /**
@@ -35,7 +35,7 @@ void Emm_V5_Reset_Clog_Pro(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 4);
+  Serial1.write(cmd, 4);
 }
 
 /**
@@ -74,7 +74,7 @@ void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s)
   cmd[i] = 0x6B; ++i;                   // 校验字节
   
   // 发送命令
-  Serial.write(cmd, i);
+  Serial1.write(cmd, i);
 }
 
 /**
@@ -97,7 +97,7 @@ void Emm_V5_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
   cmd[5] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 6);
+  Serial1.write(cmd, 6);
 }
 
 /**
@@ -120,7 +120,7 @@ void Emm_V5_En_Control(uint8_t addr, bool state, bool snF)
   cmd[5] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 6);
+  Serial1.write(cmd, 6);
 }
 
 /**
@@ -147,7 +147,7 @@ void Emm_V5_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bo
   cmd[7] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 8);
+  Serial1.write(cmd, 8);
 }
 
 /**
@@ -181,7 +181,7 @@ void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, ui
   cmd[12] =  0x6B;                      // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 13);
+  Serial1.write(cmd, 13);
 }
 
 /**
@@ -202,7 +202,7 @@ void Emm_V5_Stop_Now(uint8_t addr, bool snF)
   cmd[4] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 5);
+  Serial1.write(cmd, 5);
 }
 
 /**
@@ -221,7 +221,7 @@ void Emm_V5_Synchronous_motion(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 4);
+  Serial1.write(cmd, 4);
 }
 
 /**
@@ -242,7 +242,7 @@ void Emm_V5_Origin_Set_O(uint8_t addr, bool svF)
   cmd[4] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 5);
+  Serial1.write(cmd, 5);
 }
 
 /**
@@ -286,7 +286,7 @@ void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t
   cmd[19] =  0x6B;                      // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 20);
+  Serial1.write(cmd, 20);
 }
 
 /**
@@ -308,7 +308,7 @@ void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
   cmd[4] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 5);
+  Serial1.write(cmd, 5);
 }
 
 /**
@@ -327,7 +327,7 @@ void Emm_V5_Origin_Interrupt(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  Serial.write(cmd, 4);
+  Serial1.write(cmd, 4);
 }
 
 /**
@@ -348,7 +348,7 @@ void Emm_V5_Receive_Data(uint8_t *rxCmd, uint8_t *rxCount)
   // 开始接收数据
   while(1)
   {
-    if(Serial.available() > 0)            // 串口有数据进来
+    if(Serial1.available() > 0)            // 串口有数据进来
     {
       if(i <= 128)                        // 防止数组溢出，该值需要小于数组的长度
       {

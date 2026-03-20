@@ -7,10 +7,17 @@
 *** qq交流群：262438510
 **********************************************************/
 
-// 注意：串口和USB下载口共用串口（0,1），USB上传程序时，先拔掉串口线.
-
 #include <Arduino.h>
 #include "Emm_V5.h"
+
+#define SERIAL1_TXD_PIN 18
+#define SERIAL1_RXD_PIN 17
+#define SERIAL2_TXD_PIN 16
+#define SERIAL2_RXD_PIN 15
+#define PWM1_PIN 4
+#define PWM2_PIN 5
+#define PWM3_PIN 6
+#define PWM4_PIN 7
 
 void setup() {
   // put your setup code here, to run once:
@@ -20,35 +27,35 @@ void setup() {
 
   // 初始化串口
   Serial.begin(115200);
+  Serial1.begin(115200, SERIAL_8N1, SERIAL1_TXD_PIN, SERIAL1_RXD_PIN);
+  Serial2.begin(115200, SERIAL_8N1, SERIAL2_TXD_PIN, SERIAL2_RXD_PIN);
 
-  // 等待串口初始化完成
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
+  Serial.println("Supermarket robot initialized");
 
   // 上电延时2秒等待Emm_V5.0闭环初始化完毕
-  delay(2000);
+  delay(1000);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
 
   // 定义接收数据数组、接收数据长度
   uint8_t rxCmd[128] = {0}; uint8_t rxCount = 0;
  
   // 位置模式：速度1000RPM，加速度0（不使用加减速直接启动），脉冲数3200（16细分下发送3200个脉冲电机转一圈），相对运动
-  Emm_V5_Pos_Control(1, 0, 1000, 0, 3200, 0, 0);
+  Emm_V5_Pos_Control(1, 0, 1000, 250, 3200, 0, 0);
+  delay(1000);
+  Emm_V5_Pos_Control(1, 1, 1000, 250, 3200, 0, 0);
+  Serial.println("Motor 1 position control command sent");
 
   // 等待返回命令，命令数据缓存在数组rxCmd上，长度为rxCount
-  Emm_V5_Receive_Data(rxCmd, &rxCount);
+  //Emm_V5_Receive_Data(rxCmd, &rxCount);
 
   // 验证校验字节，验证成功则点亮LED灯，否则熄灭LED灯
-  if(rxCmd[rxCount - 1] == 0x6B) {  } else {  }
+  //if(rxCmd[rxCount - 1] == 0x6B) {  } else {  }
 
   // 调试使用，打印Emm_V5.0闭环返回的数据到串口
   // for(int i = 0; i < rxCount; i++) { Serial.write(rxCmd[i] + 1); } // 因为和USB下载口共用串口，所以让每个数据加1再发送出来，防止和电机地址冲突
 
-  // 停止发送命令
-  while(1);
-}
+  delay(1000);
+ }
 

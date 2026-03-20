@@ -2,6 +2,11 @@
     "files.associations": {
         "istream": "c",
         "streambuf": "c",
-        "tuple": "c"
+        "tuple": "c",
+        "algorithm": "cpp",
+        "random": "cpp",
+        "fstream": "cpp",
+        "ostream": "cpp",
+        "utility": "cpp"
     }
 }
