@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+#define SERIAL1_TXD_PIN 18
+#define SERIAL1_RXD_PIN 17
+
 #define    ABS(x)    ((x) > 0 ? (x) : -(x)) 
 
 typedef enum {
@@ -25,6 +28,8 @@ typedef enum {
 /**********************************************************
 *** 注意：每个函数的参数的具体说明，请查阅下方的函数的注释说明
 **********************************************************/
+
+void Emm_V5_Init(void); // 初始化电机
 void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr); // 将当前位置清零
 void Emm_V5_Reset_Clog_Pro(uint8_t addr); // 解除堵转保护
 void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s); // 读取参数

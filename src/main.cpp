@@ -9,10 +9,6 @@
 #include "lidar.h"
 
 // 引脚定义
-#define SERIAL1_TXD_PIN 18
-#define SERIAL1_RXD_PIN 17
-#define SERIAL2_TXD_PIN 16
-#define SERIAL2_RXD_PIN 15
 #define PWM1_PIN 4
 #define PWM2_PIN 5
 #define PWM3_PIN 6
@@ -34,13 +30,36 @@ void setup() {
 
   // 初始化雷达
   initLidar();
+  // 初始化电机
+  Emm_V5_Init();
 
   Serial.println("Supermarket robot initialized");
-
-  // 上电延时等待初始化完毕
-  delay(1000);
 }
 
 void loop() {
+  
+  vTaskDelay(pdMS_TO_TICKS(1000));
+  Emm_V5_Pos_Control(5, 0, 1000, 254, 3200,0,0);
+  vTaskDelay(pdMS_TO_TICKS(1000));
+  Emm_V5_Pos_Control(6, 0, 1000, 254, 3200,0,0);
+  vTaskDelay(pdMS_TO_TICKS(1000));
+  Emm_V5_Pos_Control(7, 0, 1000, 254, 3200,0,0);
+  vTaskDelay(pdMS_TO_TICKS(2000));
+
+  Emm_V5_Pos_Control(5, 0, 1000, 254, 3200,0,0);
+  vTaskDelay(pdMS_TO_TICKS(100));
+  Emm_V5_Pos_Control(6, 0, 1000, 254, 3200,0,0);
+  vTaskDelay(pdMS_TO_TICKS(100));
+  Emm_V5_Pos_Control(7, 0, 1000, 254, 3200,0,0);
+  vTaskDelay(pdMS_TO_TICKS(100));
+
+  vTaskDelay(pdMS_TO_TICKS(2000));
+  Emm_V5_Pos_Control(5, 0, 1000, 254, 3200,0,1);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_Pos_Control(6, 0, 1000, 254, 3200,0,1);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_Pos_Control(7, 0, 1000, 254, 3200,0,1);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_Synchronous_motion(0);
   vTaskDelay(pdMS_TO_TICKS(1000));
 }

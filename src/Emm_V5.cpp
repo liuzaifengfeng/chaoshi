@@ -1,6 +1,19 @@
 #include "Emm_V5.h"
 
 /**
+  * @brief    初始化电机
+  * @retval   无
+  */
+void Emm_V5_Init(void)
+{
+  Serial1.begin(115200, SERIAL_8N1, SERIAL1_TXD_PIN, SERIAL1_RXD_PIN);
+  delay(100);
+  Emm_V5_Reset_Clog_Pro(0);
+  Emm_V5_Reset_CurPos_To_Zero(0);
+  Serial.println("Emm_V5 initialized");
+}
+
+/**
   * @brief    将当前位置清零
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
