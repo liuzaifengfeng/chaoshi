@@ -5,6 +5,9 @@
 **********************************************************/
 
 #include <Arduino.h>
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include "Emm_V5.h"
 #include "lidar.h"
 
@@ -13,6 +16,16 @@
 #define PWM2_PIN 5
 #define PWM3_PIN 6
 #define PWM4_PIN 7
+
+
+
+//全局h变量
+RobotPose currentPose = {0, 0, 0, 0};//当前机器人位置
+
+//位置坐标-电机脉冲转换系数（mm-脉冲）
+const float X_PULSE = 18.0f;
+const float Y_PULSE = 18.0f;
+const float THETA_PULSE = 18.0f;
 
 // --------------------------------------------------------
 // 初始化设置
@@ -26,7 +39,6 @@ void setup() {
 
   // 初始化串口
   Serial.begin(115200);
-  Serial1.begin(115200, SERIAL_8N1, SERIAL1_TXD_PIN, SERIAL1_RXD_PIN);
 
   // 初始化雷达
   initLidar();
@@ -34,32 +46,28 @@ void setup() {
   Emm_V5_Init();
 
   Serial.println("Supermarket robot initialized");
+
+  // 1. 配置 LEDC 通道
+  ledcSetup(0, 50, 13);
+  ledcSetup(1, 50, 13);
+  ledcSetup(2, 50, 13);
+  ledcSetup(3, 50, 13);
+  // 2. 将引脚绑定到通道
+  ledcAttachPin(4, 0);
+  ledcAttachPin(5, 1);
+  ledcAttachPin(6, 2);
+  ledcAttachPin(7, 3);
+
+}
+
+// 计算角度对应的 PWM 数值
+int angleToDuty(int angle) {
+  // 将 0-180 度映射到 205-1024 (对应 0.5ms-2.5ms)
+  return map(angle, 0, 180, 205, 1024);
 }
 
 void loop() {
-  
-  vTaskDelay(pdMS_TO_TICKS(1000));
-  Emm_V5_Pos_Control(5, 0, 1000, 254, 3200,0,0);
-  vTaskDelay(pdMS_TO_TICKS(1000));
-  Emm_V5_Pos_Control(6, 0, 1000, 254, 3200,0,0);
-  vTaskDelay(pdMS_TO_TICKS(1000));
-  Emm_V5_Pos_Control(7, 0, 1000, 254, 3200,0,0);
-  vTaskDelay(pdMS_TO_TICKS(2000));
 
-  Emm_V5_Pos_Control(5, 0, 1000, 254, 3200,0,0);
-  vTaskDelay(pdMS_TO_TICKS(100));
-  Emm_V5_Pos_Control(6, 0, 1000, 254, 3200,0,0);
-  vTaskDelay(pdMS_TO_TICKS(100));
-  Emm_V5_Pos_Control(7, 0, 1000, 254, 3200,0,0);
-  vTaskDelay(pdMS_TO_TICKS(100));
-
-  vTaskDelay(pdMS_TO_TICKS(2000));
-  Emm_V5_Pos_Control(5, 0, 1000, 254, 3200,0,1);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  Emm_V5_Pos_Control(6, 0, 1000, 254, 3200,0,1);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  Emm_V5_Pos_Control(7, 0, 1000, 254, 3200,0,1);
-  vTaskDelay(pdMS_TO_TICKS(10));
-  Emm_V5_Synchronous_motion(0);
-  vTaskDelay(pdMS_TO_TICKS(1000));
+  //ledcWrite(0, angleToDuty(90));
+                    
 }

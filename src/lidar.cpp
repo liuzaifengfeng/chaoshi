@@ -1,4 +1,6 @@
 #include "lidar.h"
+#include "Emm_V5.h"
+
 
 // 定义 FreeRTOS 任务句柄
 TaskHandle_t TaskLidarHandle = NULL;
@@ -35,7 +37,7 @@ void TaskLidarProcess(void *pvParameters) {
             bool frame_received = false;
             uint32_t start_time = millis();
 
-            // 设置200ms超时机制 (避免某个雷达掉线导致整个系统卡死)
+            // 设置100ms超时机制 (避免某个雷达掉线导致整个系统卡死)
             while (millis() - start_time < 100 && !frame_received) {
                 while (Serial2.available()) {
                     rx_buffer[rx_index++] = Serial2.read();
@@ -105,6 +107,107 @@ void TaskLidarProcess(void *pvParameters) {
         // 6. FreeRTOS 绝对延时，补齐剩余时间，确保整个大循环精准为 500 毫秒 (2Hz)
         vTaskDelayUntil(&xLastWakeTime, xFrequency); 
     }
+}
+
+/**
+ * @brief 移动机器人到指定位置
+ * @param x 目标X坐标
+ * @param y 目标Y坐标
+ * @param theta 目标角度
+ * @param isRelative 是否为相对坐标
+ * @return void
+ */
+void GotoPose(float x, float y, float theta,bool isRelative) {
+    if (isRelative) {//相对坐标
+       if(x != 0 || y != 0 ) {//平行移动
+        if(x > 0) {
+            Emm_V5_Pos_Control( 1, 1, 1000, 200, x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 2, 1, 1000, 200, x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 3, 0, 1000, 200, x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 4, 0, 1000, 200, x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Synchronous_motion(0);
+        }
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        if(y > 0) {
+            Emm_V5_Pos_Control( 1, 1, 1000, 200, y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 2, 0, 1000, 200, y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 3, 1, 1000, 200, y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 4, 0, 1000, 200, y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Synchronous_motion(0);
+        }
+       } else {//旋转移动
+        Emm_V5_Pos_Control( 1, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Pos_Control( 2, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Pos_Control( 3, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Pos_Control( 4, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Synchronous_motion(0);
+       }
+
+    } else {//绝对坐标
+        //暂不支持
+        Serial.println("Error: GotoPose() absolute position not supported");
+    }
+}
+
+/**
+ * @brief 根据雷达数据推算坐标
+ * @param dists 长度为4的数组，存储CH0-CH3的平均距离
+ * @return 推算出的位置
+ */
+RobotPose GETPose(int dists[4]) {
+    RobotPose pose = {0, 0, 0, 0};    
+    bool BetweenShelves = false;     //是否在两货架之间
+    bool ParallelToEdge = false;    //是否平行场地边缘
+
+    if (dists[0] > 0 && dists[1] > 0 && dists[2] > 0 && dists[3] > 0) {//检查是否有无效数据
+    } else {
+        Serial.println("Error: GETPose() no all valid data");
+        return pose;
+    }
+
+    // --- 1. 计算 航向角 (利用 CH1 和 CH2) ---
+    // 假设两个传感器向上指向 Y_MAX 方向
+    pose.theta = (dists[1] - dists[2]) / 2.0f;
+    if (pose.theta < 3) {
+        ParallelToEdge = true;
+    } else {
+        BetweenShelves = false;
+    }
+
+    if (ParallelToEdge) {//不平行场地边缘，直接返回
+        return pose;
+    }
+
+    // --- 2. 计算 X 坐标 (利用 CH0 和 CH3) ---
+    // 假设 CH0 指向 X_MINI 方向 (机器人左侧方向)
+
+    if (dists[0] + dists[3]  + ROBOT_WIDTH > FIELD_X_MAX- 200) {//不再两货架之间
+        pose.x =((dists[0])+(FIELD_X_MAX - dists[3] - ROBOT_WIDTH))/2;//取平均值
+    } else if (dists[0] + dists[1]  + ROBOT_WIDTH > FIELD_X_MAX - SHELF_WIDTH * 2- 200) {//在两货架之间
+        pose.x =((dists[0] + SHELF_WIDTH) +(FIELD_X_MAX - dists[3] - ROBOT_WIDTH - SHELF_WIDTH))/2;//取平均值
+    } else {//错误情况
+        Serial.println("Error: GETPose() no X valid data");
+        Serial.println("dists[0]: " + String(dists[0]) + ", dists[3]: " + String(dists[3]));
+        return pose;
+    }
+
+    // --- 3. 计算 Y 坐标 (利用 CH0 和 CH1) ---
+    // 假设两个传感器向上指向 Y_MAX 方向
+    pose.y = FIELD_Y_MAX - (dists[0] + dists[1]) / 2.0f;
+
+    return pose;
 }
 
 // 初始化雷达相关设置
