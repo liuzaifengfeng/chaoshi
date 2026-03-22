@@ -24,15 +24,15 @@ const int FIELD_Y_MAX = 2600; // 场地最大Y坐标
 const int SHELF_WIDTH = 500;  // 货架宽度 
 const int SHELF_LENGTH = 1000; // 货架长度 
 //机器人常数定义 (单位: mm)
-const int ROBOT_WIDTH = 400; // 机器人宽度（X）
-const int ROBOT_LENGTH = 600; // 机器人长度（Y）   
+const int ROBOT_WIDTH = 390; // 机器人宽度（X,mm）
+const int ROBOT_LENGTH = 0; // 机器人长度（Y,mm）   
+const int LIDAR_W_1_2 = 335; //ch1-ch2宽度(mm)
 
 // 机器人坐标结构体
 struct RobotPose {
     float x;
     float y;
     float theta; // 航向角
-    bool isRelative;// 是否为相对坐标
 };
 
 #pragma pack(push, 1)

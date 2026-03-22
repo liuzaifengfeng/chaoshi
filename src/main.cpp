@@ -15,7 +15,7 @@
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前机器人位置
 bool isdebug = true;//是否调试模式
-
+                                    
 //位置坐标-电机脉冲转换系数（mm-脉冲）
  float X_PULSE = 18.0f;
  float Y_PULSE = 18.0f;
@@ -96,16 +96,26 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.print(cmd.param2);
         Serial.print(", clk=");
         Serial.println(cmd.param3);
-        Emm_V5_Pos_Control( cmd.param1, cmd.param2, 2000, 250, cmd.param3, 0, 0);
+        Emm_V5_Pos_Control( cmd.param1, cmd.param2, 1000, 200, cmd.param3, 0, 0);
 
         // 执行reset命令,重置机器人位置
       } else if(strcmp(cmd.cmd, "reset") == 0){
           Serial.println("Executing reset");
-          ESP.restart();
+          ESP.restart();//重启ESP32
 
+      } else if(strcmp(cmd.cmd, "help") == 0){
+        // 执行help命令,显示帮助信息
+        Serial.println("Available commands:");
+        Serial.println("GOTOpose x y theta");
+        Serial.println("GETpose");
+        Serial.println("GETdist");
+        Serial.println("EMMpos addr dir clk");
+        Serial.println("reset");
+        Serial.println("help");
+           
       } else {
         // 未知命令类型
-        Serial.println("Invalid command type");
+        Serial.println("Invalid command type ,please input help");
       }
     }
   }
