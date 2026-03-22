@@ -15,7 +15,7 @@
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度
 bool isdebug = true;//是否调试模式
-                                    
+
 //位置坐标-电机脉冲转换系数（mm-脉冲）
  float X_PULSE = 10.5f;
  float Y_PULSE = 11.4f;
@@ -39,6 +39,7 @@ void Task_Main_Serial0_CMD(void *pvParameters);//主串口0命令任务函数
 void Task_Debug_Mode(void *pvParameters);//调试模式任务函数（调试模式）
 void Task_Debug_Serial0_CMD(void *pvParameters);//调试模式串口0命令任务函数
 
+
 // 主状态机任务函数（正常运行模式）
 void Task_MainStateMachine(void *pvParameters){
 
@@ -48,6 +49,7 @@ void Task_MainStateMachine(void *pvParameters){
 void Task_Main_Serial0_CMD(void *pvParameters){
 
 }
+
 
 // 调试模式任务函数（调试模式）
 void Task_Debug_Mode(void *pvParameters){
@@ -123,6 +125,8 @@ void Task_Debug_Mode(void *pvParameters){
       } else {
         // 未知命令类型
         Serial.println("Invalid command type ,please input help");
+        //echo
+        Serial.println(cmd.cmd);
       }
     }
   }
@@ -204,5 +208,6 @@ void setup() {
 void loop() {
 
   //ledcWrite(0, angleToDuty(90));
+  vTaskDelete(NULL);
                     
 }
