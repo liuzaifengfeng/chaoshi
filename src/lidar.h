@@ -25,7 +25,7 @@ const int SHELF_WIDTH = 500;  // 货架宽度
 const int SHELF_LENGTH = 1000; // 货架长度 
 //机器人常数定义 (单位: mm)
 const int ROBOT_WIDTH = 390; // 机器人宽度（X,mm）
-const int ROBOT_LENGTH = 0; // 机器人长度（Y,mm）   
+const int ROBOT_LENGTH = 610; // 机器人长度（Y,mm）   
 const int LIDAR_W_1_2 = 335; //ch1-ch2宽度(mm)
 
 // 机器人坐标结构体

@@ -13,20 +13,20 @@
 #include "pwm.h"
 
 //全局变量
-RobotPose currentPose = {0, 0, 0};//当前机器人位置
+RobotPose currentPose = {0, 0, 0};//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度
 bool isdebug = true;//是否调试模式
                                     
 //位置坐标-电机脉冲转换系数（mm-脉冲）
- float X_PULSE = 18.0f;
- float Y_PULSE = 18.0f;
- float THETA_PULSE = 18.0f;
+ float X_PULSE = 10.5f;
+ float Y_PULSE = 11.4f;
+ float THETA_PULSE = 84.0f;
 
 // Debug命令队列
 QueueHandle_t xDebugQueue;
 
 // Debug命令结构体
 typedef struct {
-  char cmd[10];      // 命令类型：GOTOpose 或 GETpose
+  char cmd[20];           // 命令类型
   float param1;           // 参数1
   float param2;           // 参数2
   float param3;           // 参数3
@@ -98,7 +98,14 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.println(cmd.param3);
         Emm_V5_Pos_Control( cmd.param1, cmd.param2, 1000, 200, cmd.param3, 0, 0);
 
-        // 执行reset命令,重置机器人位置
+      } else if(strcmp(cmd.cmd, "PWM") == 0){
+        // 执行PWM命令,设置PWM占空比
+        Serial.print("Executing PWM: addr=");
+        Serial.print(cmd.param1);
+        Serial.print(", angle=");
+        Serial.println(cmd.param2);
+        ledcWrite(cmd.param1, angleToDuty(cmd.param2));
+
       } else if(strcmp(cmd.cmd, "reset") == 0){
           Serial.println("Executing reset");
           ESP.restart();//重启ESP32
@@ -176,15 +183,12 @@ void setup() {
   // 初始化电机
   Emm_V5_Init();
 
-  // 初始化调试队列
-  xDebugQueue = xQueueCreate(10, sizeof(DebugCommand_t));
-  if (xDebugQueue == NULL) {
-    Serial.println("Failed to create debug queue");
-  }
 
   //开启程序
   if (isdebug) {
     Serial.println("Debug mode ");//调试模式 开启对应任务
+    xDebugQueue = xQueueCreate(20, sizeof(DebugCommand_t));  // 初始化调试队列
+    if (xDebugQueue == NULL) { Serial.println("Failed to create debug queue");}
     xTaskCreate(Task_Debug_Mode, "Task_Debug_Mode", 8192, NULL, 5, NULL);
     xTaskCreate(Task_Debug_Serial0_CMD, "Task_Debug_Serial0_CMD", 8192, NULL, 5, NULL);
   } else {
@@ -196,8 +200,6 @@ void setup() {
   Serial.println("Supermarket robot initialized");
 
 }
-
-
 
 void loop() {
 

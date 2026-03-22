@@ -21,8 +21,11 @@
 ### 命令格式
 - GOTOpose命令：`GOTOpose x y theta`
 - GETpose命令：`GETpose`
+- GETdist命令：`GETdist`
 - EMMpos命令：`EMMpos addr dir clk`
+- PWM命令：`PWM addr angle`
 - reset命令：`reset`
+
 
 ### 实现步骤
 1. 在main.cpp中添加队列定义和命令结构体
@@ -46,12 +49,14 @@
 3. 打开串口监视器
 4. 发送命令：
    - 移动到指定位置：`GOTOpose 100 200 0`
-   - 获取当前位置：`GETpose`
+   - 获取当前位置坐标：`GETpose`
+   - 获取原始距离：`GETdist`
    - 设置电机位置：`EMMpos 1 1 3200`
    - 重置机器人位置：`reset`
+   - 设置PWM占空比：`PWM 1 50`
 
 ## 注意事项
 
 - 命令格式必须正确，否则会提示"Invalid command format"
-- 队列容量为10，超过会提示"Failed to send command to debug queue"
+- 队列容量为20，超过会提示"Failed to send command to debug queue"
 - GOTOpose命令的坐标单位为mm，角度单位为度

@@ -119,66 +119,83 @@ void TaskLidarProcess(void *pvParameters) {
  * @return void
  */
 void GotoPose(float x, float y, float theta,bool isRelative) {
+    int speed = 200;//移动速度  
+
     if (isRelative) {//相对坐标
-       if(x >= 0 || y >= 0 ) {//平行移动
+       if(x != 0 || y != 0 ) {//平行移动
+
         if(x > 0) {
-            Emm_V5_Pos_Control( 1, 0, 1000, 100, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 1, 0, speed, 50, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 2, 1, 1000, 100, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 2, 1, speed, 50, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 3, 0, 1000, 100, x * X_PULSE, 0, 1);    
+            Emm_V5_Pos_Control( 3, 0, speed, 50, x * X_PULSE, 0, 1);    
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 4, 1, 1000, 100, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 4, 1, speed, 50, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
             vTaskDelay(pdMS_TO_TICKS(3000));
         } else if(x < 0) {
-            Emm_V5_Pos_Control( 1, 1, 1000, 100, -x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 1, 1, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 2, 0, 1000, 100, -x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 2, 0, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 3, 1, 1000, 100, -x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 3, 1, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 4, 0, 1000, 100, -x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 4, 0, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
             vTaskDelay(pdMS_TO_TICKS(3000));
         }
         
         if(y > 0) {
-            Emm_V5_Pos_Control( 1, 0, 1000, 100, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 1, 0, speed, 50, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 2, 0, 1000, 100, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 2, 0, speed, 50, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 3, 1, 1000, 100, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 3, 1, speed, 50, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 4, 1, 1000, 100, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 4, 1, speed, 50, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
             vTaskDelay(pdMS_TO_TICKS(3000));
         } else if(y < 0) {
-            Emm_V5_Pos_Control( 1, 1, 1000, 100, -y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 1, 1, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 2, 1, 1000, 100, -y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 2, 1, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 3, 0, 1000, 100, -y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 3, 0, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 4, 0, 1000, 100, -y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 4, 0, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
             vTaskDelay(pdMS_TO_TICKS(3000));
         }
-       } else {//旋转移动
-        Emm_V5_Pos_Control( 1, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Pos_Control( 2, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Pos_Control( 3, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Pos_Control( 4, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Synchronous_motion(0);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+
+       } else if(theta != 0) {//旋转移动
+        if(theta > 0) {
+            Emm_V5_Pos_Control( 1, 0, speed, 50, theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 2, 0, speed, 50, theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 3, 0, speed, 50, theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 4, 0, speed, 50, theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        } else if(theta <0){
+            Emm_V5_Pos_Control( 1, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 2, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 3, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 4, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        }
        }
 
     } else {//绝对坐标
