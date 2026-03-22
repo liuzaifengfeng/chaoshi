@@ -5,12 +5,14 @@
 // 定义 FreeRTOS 任务句柄
 TaskHandle_t TaskLidarHandle = NULL;
 
+// 存储4个通道的平均距离（全局变量，用于GETdist命令）
+int avg_distances[4] = {0, 0, 0, 0};
+
 // --------------------------------------------------------
 // 任务：雷达数据轮询与解析 (运行在 Core 0)
 // --------------------------------------------------------
 void TaskLidarProcess(void *pvParameters) {
     uint8_t rx_buffer[FRAME_LENGTH];
-    int avg_distances[4] = {0, 0, 0, 0}; // 存储4个通道的平均距离
 
     // 用于精准控制 2Hz (500ms) 的任务周期
     TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -101,8 +103,7 @@ void TaskLidarProcess(void *pvParameters) {
         }
 
         // 5. 4个通道采集完毕，向串口0上报最终汇总结果
-        Serial.printf("[LiDAR Map] CH0: %4d mm | CH1: %4d mm | CH2: %4d mm | CH3: %4d mm\n", 
-                      avg_distances[0], avg_distances[1], avg_distances[2], avg_distances[3]);
+        //Serial.printf("[LiDAR Map] CH0: %4d mm | CH1: %4d mm | CH2: %4d mm | CH3: %4d mm\n",  avg_distances[0], avg_distances[1], avg_distances[2], avg_distances[3]);
 
         // 6. FreeRTOS 绝对延时，补齐剩余时间，确保整个大循环精准为 500 毫秒 (2Hz)
         vTaskDelayUntil(&xLastWakeTime, xFrequency); 
@@ -114,45 +115,70 @@ void TaskLidarProcess(void *pvParameters) {
  * @param x 目标X坐标
  * @param y 目标Y坐标
  * @param theta 目标角度
- * @param isRelative 是否为相对坐标
+ * @param isRelative 0:绝对坐标 1:相对坐标
  * @return void
  */
 void GotoPose(float x, float y, float theta,bool isRelative) {
     if (isRelative) {//相对坐标
-       if(x != 0 || y != 0 ) {//平行移动
+       if(x >= 0 || y >= 0 ) {//平行移动
         if(x > 0) {
-            Emm_V5_Pos_Control( 1, 1, 1000, 200, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 1, 0, 1000, 100, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 2, 1, 1000, 200, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 2, 1, 1000, 100, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 3, 0, 1000, 200, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 3, 0, 1000, 100, x * X_PULSE, 0, 1);    
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 4, 0, 1000, 200, x * X_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 4, 1, 1000, 100, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        } else if(x < 0) {
+            Emm_V5_Pos_Control( 1, 1, 1000, 100, -x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 2, 0, 1000, 100, -x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 3, 1, 1000, 100, -x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 4, 0, 1000, 100, -x * X_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(3000));
         }
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        
         if(y > 0) {
-            Emm_V5_Pos_Control( 1, 1, 1000, 200, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 1, 0, 1000, 100, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 2, 0, 1000, 200, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 2, 0, 1000, 100, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 3, 1, 1000, 200, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 3, 1, 1000, 100, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
-            Emm_V5_Pos_Control( 4, 0, 1000, 200, y * Y_PULSE, 0, 1);
+            Emm_V5_Pos_Control( 4, 1, 1000, 100, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(3000));
+        } else if(y < 0) {
+            Emm_V5_Pos_Control( 1, 1, 1000, 100, -y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 2, 1, 1000, 100, -y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 3, 0, 1000, 100, -y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Pos_Control( 4, 0, 1000, 100, -y * Y_PULSE, 0, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(3000));
         }
        } else {//旋转移动
-        Emm_V5_Pos_Control( 1, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        Emm_V5_Pos_Control( 1, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
         vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Pos_Control( 2, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        Emm_V5_Pos_Control( 2, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
         vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Pos_Control( 3, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        Emm_V5_Pos_Control( 3, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
         vTaskDelay(pdMS_TO_TICKS(10));
-        Emm_V5_Pos_Control( 4, 0, 1000, 200, theta * THETA_PULSE, 0, 1);
+        Emm_V5_Pos_Control( 4, 0, 1000, 100, theta * THETA_PULSE, 0, 1);
         vTaskDelay(pdMS_TO_TICKS(10));
         Emm_V5_Synchronous_motion(0);
+        vTaskDelay(pdMS_TO_TICKS(3000));
        }
 
     } else {//绝对坐标
@@ -167,7 +193,7 @@ void GotoPose(float x, float y, float theta,bool isRelative) {
  * @return 推算出的位置
  */
 RobotPose GETPose(int dists[4]) {
-    RobotPose pose = {0, 0, 0, 0};    
+    RobotPose pose = {0, 0, 0};    
     bool BetweenShelves = false;     //是否在两货架之间
     bool ParallelToEdge = false;    //是否平行场地边缘
 
@@ -180,13 +206,14 @@ RobotPose GETPose(int dists[4]) {
     // --- 1. 计算 航向角 (利用 CH1 和 CH2) ---
     // 假设两个传感器向上指向 Y_MAX 方向
     pose.theta = (dists[1] - dists[2]) / 2.0f;
-    if (pose.theta < 3) {
+    if (pose.theta < 50) {
         ParallelToEdge = true;
     } else {
         BetweenShelves = false;
     }
 
-    if (ParallelToEdge) {//不平行场地边缘，直接返回
+    if (!ParallelToEdge) {//不平行场地边缘，直接返回
+        Serial.println("Error: GETPose() not parallel to edge");
         return pose;
     }
 

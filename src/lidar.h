@@ -14,6 +14,9 @@ extern float X_PULSE;
 extern float Y_PULSE;
 extern float THETA_PULSE;
 
+// 存储4个通道的平均距离（全局变量，用于GETdist命令）
+extern int avg_distances[4];
+
 
 // 场地常数定义 (单位: mm)
 const int FIELD_X_MAX = 3100; // 场地最大X坐标
