@@ -213,6 +213,11 @@ void GotoPose(float x, float y, float theta,bool isRelative) {
         currentPose.x += y;
        }
        currentPose.theta += theta;
+       if(currentPose.theta < 0) {
+        currentPose.theta += 360;
+       } else if(currentPose.theta > 360) {
+        currentPose.theta -= 360;
+       }
 
     } else {//绝对坐标
         //暂不支持
