@@ -13,7 +13,7 @@
 #include "pwm.h"
 
 //全局变量
-RobotPose currentPose = {0, 0, 0};//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度
+RobotPose currentPose = {0, 0, 0};//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 bool isdebug = true;//是否调试模式
 
 //位置坐标-电机脉冲转换系数（mm-脉冲）
@@ -69,15 +69,35 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.println(cmd.param3);
         // 使用GotoPose函数移动机器人到指定位置
         GotoPose(cmd.param1, cmd.param2, cmd.param3, true);
+
+      } else if(strcmp(cmd.cmd, "GOTOpose") == 0){
+        // 执行GOTOposetf命令
+        Serial.print("Executing GOTOpose: x=");
+        Serial.print(cmd.param1);
+        Serial.print(", y=");
+        Serial.print(cmd.param2);
+        Serial.print(", theta=");
+        Serial.println(cmd.param3);
+        // 使用GotoPose函数移动机器人到指定位置
+        GotoPose(cmd.param1, cmd.param2, cmd.param3, false);
         
-      } else if(strcmp(cmd.cmd, "GETpose") == 0){
-        // 执行GETpose命令
+      } else if(strcmp(cmd.cmd, "GETCpose") == 0){
+        // 执行GETCpose命令
         Serial.print("Current pose: x=");
         Serial.print(currentPose.x);
         Serial.print(", y=");
         Serial.print(currentPose.y);
         Serial.print(", theta=");
         Serial.println(currentPose.theta);
+
+      } else if(strcmp(cmd.cmd, "GETRpose") == 0){
+        // 执行GETRpose命令
+        Serial.print("REALLY pose: x=");
+        Serial.print(GETRPose(avg_distances).x);
+        Serial.print(", y=");
+        Serial.print(GETRPose(avg_distances).y);
+        Serial.print(", theta=");
+        Serial.println(GETRPose(avg_distances).theta);
 
       } else if(strcmp(cmd.cmd, "GETdist") == 0){
         // 执行GETdist命令,雷达原始距离
@@ -115,7 +135,8 @@ void Task_Debug_Mode(void *pvParameters){
       } else if(strcmp(cmd.cmd, "help") == 0){
         // 执行help命令,显示帮助信息
         Serial.println("Available commands:");
-        Serial.println("GOTOpose x y theta");
+        Serial.println("GOTOposet: x y theta");
+        Serial.println("GOTOposetf: x y theta");
         Serial.println("GETpose");
         Serial.println("GETdist");
         Serial.println("EMMpos addr dir clk");
@@ -187,6 +208,7 @@ void setup() {
   // 初始化电机
   Emm_V5_Init();
 
+  currentPose = {250, 400, 0};//初始化机器人中心位置为(250mm,400mm,0)
 
   //开启程序
   if (isdebug) {

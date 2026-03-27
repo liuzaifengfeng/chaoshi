@@ -9,10 +9,20 @@
 #define CD4052_A 1
 #define CD4052_B 2
 
+// 机器人坐标结构体
+struct RobotPose {
+    float x;
+    float y;
+    float theta; // 航向角
+};
+
 // 位置坐标-电机脉冲转换系数（mm-脉冲）
 extern float X_PULSE;
 extern float Y_PULSE;
 extern float THETA_PULSE;
+extern bool BetweenShelves;//是否在货架货架之间
+extern RobotPose currentPose;//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
+
 
 // 存储4个通道的平均距离（全局变量，用于GETdist命令）
 extern int avg_distances[4];
@@ -28,12 +38,6 @@ const int ROBOT_WIDTH = 390; // 机器人宽度（X,mm）
 const int ROBOT_LENGTH = 610; // 机器人长度（Y,mm）   
 const int LIDAR_W_1_2 = 335; //ch1-ch2宽度(mm)
 
-// 机器人坐标结构体
-struct RobotPose {
-    float x;
-    float y;
-    float theta; // 航向角
-};
 
 #pragma pack(push, 1)
 typedef struct {
@@ -59,7 +63,7 @@ extern TaskHandle_t TaskLidarHandle;
 // 函数声明
 void TaskLidarProcess(void *pvParameters);// 处理雷达初始数据的任务
 void initLidar();// 初始化雷达
-RobotPose GETPose(int dists[4]);// 计算机器人坐标
+RobotPose GETRPose(int dists[4]);// 计算机器人坐标
 void GotoPose(float x, float y, float theta,bool isRelative);// 移动机器人到指定位置
 
 #endif // LIDAR_H

@@ -198,6 +198,22 @@ void GotoPose(float x, float y, float theta,bool isRelative) {
         }
        }
 
+       //更新当前位置
+       if(currentPose.theta == 0) {
+        currentPose.x += x;
+        currentPose.y += y;
+       } else if(currentPose.theta == 90) {
+        currentPose.y += x;
+        currentPose.x -= y;
+       } else if(currentPose.theta == 180) {
+        currentPose.x -= x;
+        currentPose.y -= y;
+       } else if(currentPose.theta == 270) {
+        currentPose.y -= x;
+        currentPose.x += y;
+       }
+       currentPose.theta += theta;
+
     } else {//绝对坐标
         //暂不支持
         Serial.println("Error: GotoPose() absolute position not supported");
@@ -209,49 +225,116 @@ void GotoPose(float x, float y, float theta,bool isRelative) {
  * @param dists 长度为4的数组，存储CH0-CH3的平均距离
  * @return 推算出的位置
  */
-RobotPose GETPose(int dists[4]) {
+RobotPose GETRPose(int dists[4]) {
     RobotPose pose = {0, 0, 0};    
     bool BetweenShelves = false;     //是否在两货架之间
     bool ParallelToEdge = false;    //是否平行场地边缘
 
     if (dists[0] > 0 && dists[1] > 0 && dists[2] > 0 && dists[3] > 0) {//检查是否有无效数据
     } else {
-        Serial.println("Error: GETPose() no all valid data");
-        return pose;
+        Serial.println("Error: GETPose() invalid data ");
+        return {0, 0, 0};
     }
 
-    // --- 1. 计算 航向角 (利用 CH1 和 CH2) ---
-    // 假设两个传感器向上指向 Y_MAX 方向
-    pose.theta = (dists[1] - dists[2]) / 2.0f;
-    if (pose.theta < 50) {
-        ParallelToEdge = true;
+    // ---  计算坐标 ---
+    if (currentPose.theta == 0) {//初始角度为0度， ch0指向Y_MINI方向，ch3指向Y_MAXI方向
+        //计算Y坐标
+        pose.y = (FIELD_Y_MAX + dists[0] - dists[3]) / 2.0f;
+        if (pose.y > 1000 && pose.y < FIELD_Y_MAX - 1000) {//Y坐标在判断有效范围内(两货架之间)
+            BetweenShelves = true;
+        } else {
+            BetweenShelves = false;
+        }
+
+        //计算X坐标
+        if ((dists[1] - dists[2]) < 50 || (dists[1] - dists[2]) > -50) {//两个激光打到同一平面
+            if(BetweenShelves) {//在两货架之间
+                pose.x = FIELD_X_MAX - ((dists[1] + dists[2])/2.0f + SHELF_WIDTH + ROBOT_WIDTH/2.0f);
+            } else {//不再两货架之间
+                pose.x = FIELD_X_MAX - ((dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f);
+            }
+
+        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+        pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+
+        return pose;
+
+        } else {//两个激光打到不同平面
+            return {0, 0, 0};//非法位置
+        }
+
+    } else if (currentPose.theta == 90) { //角度为90度，ch0指向X_MAX方向，ch3指向X_MINI方向
+        //计算X坐标
+        if(dists[0] + dists[3] + ROBOT_LENGTH > FIELD_X_MAX - 100) {//X坐标在判断有效范围内(两货架之间)
+            BetweenShelves = false;
+            pose.x = (FIELD_X_MAX + dists[3] - dists[0]) / 2.0f;
+        } else if((dists[0] + dists[3] + ROBOT_LENGTH) - (FIELD_X_MAX - SHELF_WIDTH*2) > -100 || (dists[0] + dists[3] + ROBOT_LENGTH) - (FIELD_X_MAX - SHELF_WIDTH*2) < 100) {//不在两货架之间
+            BetweenShelves = true;
+            pose.x = (FIELD_X_MAX + dists[3] - dists[0]) / 2.0f;
+        } else {
+            return {0, 0, 0};//非法位置
+        }
+        //计算Y坐标
+        if((dists[1] - dists[2]) < 100 || (dists[1] - dists[2]) > -100) {//两个激光打到同一平面
+            pose.y = FIELD_Y_MAX - (dists[1] + dists[2])/2.0f - ROBOT_WIDTH/2.0f;
+        } else {
+            return {0, 0, 0};//非法位置
+        }
+        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+        pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+
+        return pose;
+
+    } else if (currentPose.theta == 180) { //角度为180度，ch0指向Y_MAX方向，ch3指向Y_MINI方向
+        //计算Y坐标
+        pose.y = (FIELD_Y_MAX + dists[3] - dists[0]) / 2.0f ;
+        if (pose.y > 1000 && pose.y < FIELD_Y_MAX - 1000) {//Y坐标在判断有效范围内(两货架之间)
+            BetweenShelves = true;
+        } else {
+            BetweenShelves = false;
+        }
+
+        //计算X坐标
+        if ((dists[1] - dists[2]) < 50 || (dists[1] - dists[2]) > -50) {//两个激光打到同一平面
+            if(BetweenShelves) {//在两货架之间
+                pose.x = (dists[1] + dists[2])/2.0f + SHELF_WIDTH + ROBOT_WIDTH/2.0f;
+            } else {//不再两货架之间
+                pose.x = (dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f;
+            }
+
+        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+        pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+
+        return pose;
+
+        } else {//两个激光打到不同平面
+            return {0, 0, 0};
+        }
+
+    } else if (currentPose.theta == 270) { //角度为270度，ch0指向X_MINI方向，ch3指向X_MINI方向
+        //计算X坐标
+        if(dists[0] + dists[3] + ROBOT_LENGTH > FIELD_X_MAX - 100) {//X坐标在判断有效范围内(两货架之间)
+            BetweenShelves = false;
+            pose.x = (FIELD_X_MAX + dists[0] - dists[3]) / 2.0f;
+        } else if((dists[0] + dists[3] + ROBOT_LENGTH) - (FIELD_X_MAX - SHELF_WIDTH*2) > -100 || (dists[0] + dists[3] + ROBOT_LENGTH) - (FIELD_X_MAX - SHELF_WIDTH*2) < 100) {//不在两货架之间
+            BetweenShelves = true;
+            pose.x = (FIELD_X_MAX + dists[0] - dists[3]) / 2.0f;
+        } else {
+            return {0, 0, 0};//非法位置
+        }
+        //计算Y坐标
+        if((dists[1] - dists[2]) < 50 || (dists[1] - dists[2]) > -50) {//两个激光打到同一平面
+            pose.y =(dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f;
+        } else {
+            return {0, 0, 0};//非法位置
+        }
+        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+        pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+
+        return pose;
     } else {
-        BetweenShelves = false;
+        return {0, 0, 0};
     }
-
-    if (!ParallelToEdge) {//不平行场地边缘，直接返回
-        Serial.println("Error: GETPose() not parallel to edge");
-        return pose;
-    }
-
-    // --- 2. 计算 X 坐标 (利用 CH0 和 CH3) ---
-    // 假设 CH0 指向 X_MINI 方向 (机器人左侧方向)
-
-    if (dists[0] + dists[3]  + ROBOT_WIDTH > FIELD_X_MAX- 200) {//不再两货架之间
-        pose.x =((dists[0])+(FIELD_X_MAX - dists[3] - ROBOT_WIDTH))/2;//取平均值
-    } else if (dists[0] + dists[1]  + ROBOT_WIDTH > FIELD_X_MAX - SHELF_WIDTH * 2- 200) {//在两货架之间
-        pose.x =((dists[0] + SHELF_WIDTH) +(FIELD_X_MAX - dists[3] - ROBOT_WIDTH - SHELF_WIDTH))/2;//取平均值
-    } else {//错误情况
-        Serial.println("Error: GETPose() no X valid data");
-        Serial.println("dists[0]: " + String(dists[0]) + ", dists[3]: " + String(dists[3]));
-        return pose;
-    }
-
-    // --- 3. 计算 Y 坐标 (利用 CH0 和 CH1) ---
-    // 假设两个传感器向上指向 Y_MAX 方向
-    pose.y = FIELD_Y_MAX - (dists[0] + dists[1]) / 2.0f;
-
-    return pose;
 }
 
 // 初始化雷达相关设置
