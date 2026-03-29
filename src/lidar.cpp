@@ -342,6 +342,71 @@ RobotPose GETRPose(int dists[4]) {
     }
 }
 
+/**
+ * @brief 位置微调函数 - 对比实际位置与理想位置，超过阈值时进行微调
+ * @return true: 调整成功, false: 调整失败或数据无效
+ */
+bool AdjustPose() {
+        int retryCount = 0;
+
+        float posThreshold = 10.0f; // 10mm
+        float angleThreshold = 1.0f; // 1度
+        int maxRetries = 3; // 最大重试次数
+    
+    while (retryCount < maxRetries) {
+        // 1. 获取实际位置
+        RobotPose actualPose = GETRPose(avg_distances);
+        
+        // 检查数据有效性
+        if (actualPose.x == 0 && actualPose.y == 0) {
+            Serial.println("AdjustPose: Lidar data invalid, cannot adjust");
+            return false;
+        }
+        
+        // 2. 计算偏差
+        float deltaX = currentPose.x - actualPose.x;
+        float deltaY = currentPose.y - actualPose.y;
+        float deltaTheta = currentPose.theta - actualPose.theta;
+        
+        // 角度归一化到 -180~180 度
+        while (deltaTheta > 180) deltaTheta -= 360;
+        while (deltaTheta < -180) deltaTheta += 360;
+        
+        // 3. 判断是否需要调整
+        bool needAdjustX = fabs(deltaX) > posThreshold;
+        bool needAdjustY = fabs(deltaY) > posThreshold;
+        bool needAdjustTheta = fabs(deltaTheta) > angleThreshold;
+        
+        // 如果所有偏差都在阈值内，调整完成
+        if (!needAdjustX && !needAdjustY && !needAdjustTheta) {
+            Serial.printf("AdjustPose: Position calibrated (retry %d times)\n", retryCount);
+            return true;
+        }
+        
+        // 4. 执行微调
+        Serial.printf("AdjustPose: Adjustment %d - X error:%.1fmm Y error:%.1fmm Angle error:%.1f degrees\n", 
+                      retryCount + 1, deltaX, deltaY, deltaTheta);
+        
+        // 先调整角度
+        if (needAdjustTheta) {
+            GotoPose(0, 0, deltaTheta, true);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        
+        // 再调整位置
+        if (needAdjustX || needAdjustY) {
+            GotoPose(deltaX, deltaY, 0, true);
+            vTaskDelay(pdMS_TO_TICKS(500));
+        }
+        
+        retryCount++;
+        vTaskDelay(pdMS_TO_TICKS(200));
+    }
+    
+    Serial.println("AdjustPose: error, max retries reached");
+    return false;
+}
+
 // 初始化雷达相关设置
 void initLidar() {
   // 初始化CD4052引脚

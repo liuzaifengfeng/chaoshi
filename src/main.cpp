@@ -13,7 +13,7 @@
 #include "pwm.h"
 
 //全局变量
-RobotPose currentPose = {0, 0, 0};//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
+RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 bool isdebug = true;//是否调试模式
 
 //位置坐标-电机脉冲转换系数（mm-脉冲）

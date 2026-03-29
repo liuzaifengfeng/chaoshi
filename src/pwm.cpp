@@ -9,17 +9,17 @@ void initPWM() {
   pinMode(PWM4_PIN, OUTPUT);
 
   // 1. 配置 LEDC 通道
-  ledcSetup(0, 50, 13);
   ledcSetup(1, 50, 13);
   ledcSetup(2, 50, 13);
   ledcSetup(3, 50, 13);
+  ledcSetup(4, 50, 13);
   // 2. 将引脚绑定到通道
-  ledcAttachPin(4, 0);
-  ledcAttachPin(5, 1);
-  ledcAttachPin(6, 2);
-  ledcAttachPin(7, 3);
+  ledcAttachPin(4, 1);
+  ledcAttachPin(5, 2);
+  ledcAttachPin(6, 3);
+  ledcAttachPin(7, 4);
 }
-
+ 
 // 计算角度对应的 PWM 数值
 int angleToDuty(int angle) {
   // 将 0-180 度映射到 205-1024 (对应 0.5ms-2.5ms)
