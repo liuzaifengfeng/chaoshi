@@ -14,7 +14,17 @@
 
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
+//RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
 bool isdebug = true;//是否调试模式
+
+// 机器人舵机角度结构体
+struct RobotAngle {
+    float height;//大臂高度,mm(0-1000)
+    float angle1;//通道1，
+    float angle2;//通道2
+    float angle3;//通道3
+    float angle4;//通道4
+};
 
 //位置坐标-电机脉冲转换系数（mm-脉冲）
  float X_PULSE = 10.5f;
@@ -98,6 +108,12 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.print(GETRPose(avg_distances).y);
         Serial.print(", theta=");
         Serial.println(GETRPose(avg_distances).theta);
+
+      } else if(strcmp(cmd.cmd, "AdjustPose") == 0){
+        // 执行AdjustPose命令,调整机器人位置
+        Serial.print("Executing AdjustPose");
+        // 使用AdjustPose函数调整机器人位置
+        AdjustPose();
 
       } else if(strcmp(cmd.cmd, "GETdist") == 0){
         // 执行GETdist命令,雷达原始距离
