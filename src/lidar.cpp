@@ -403,10 +403,27 @@ bool AdjustPose() {
         
         // 再调整位置
         if (needAdjustX || needAdjustY) {
-            GotoPose(deltaX * adjustRatio, 0, 0, true, true);
-            vTaskDelay(pdMS_TO_TICKS(500));
-            GotoPose(0, deltaY * adjustRatio, 0, true, true);
-            vTaskDelay(pdMS_TO_TICKS(500));
+            if(currentPose.theta == 0) {
+                GotoPose(deltaX * adjustRatio, 0, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+                GotoPose(0, deltaY * adjustRatio, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+            } else if(currentPose.theta == 90) {
+                GotoPose(deltaY * adjustRatio, 0, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+                GotoPose(0, -deltaX * adjustRatio, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+            } else if(currentPose.theta == 180) {
+                GotoPose(-deltaX * adjustRatio, 0, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+                GotoPose(0, -deltaY * adjustRatio, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+            } else if(currentPose.theta == 270) {
+                GotoPose(-deltaY * adjustRatio, 0, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+                GotoPose(0, deltaX * adjustRatio, 0, true, true);
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
         }
         
         retryCount++;

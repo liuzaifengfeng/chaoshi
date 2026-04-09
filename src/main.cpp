@@ -94,7 +94,7 @@ void Task_MainStateMachine(void *pvParameters) {
                     }
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                 }
-                GotoPose(0, 400, 0 , true, false);
+                GotoPose(0, 350, 0 , true, false);
                 //ledcWrite( 3, 50);
                 GotoPose(700, 0, 0 , true, false);//点三
                 Serial.println("point3");
@@ -111,21 +111,47 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoPose(0, 0, 180 , true, false);
                 vTaskDelay(3000 / portTICK_PERIOD_MS);//场地中央
                 Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
-                GETRPose(avg_distances);//获取当前机器人位置
+        Serial.print("REALLY pose: x=");
+        Serial.print(GETRPose(avg_distances).x);
+        Serial.print(", y=");
+        Serial.print(GETRPose(avg_distances).y);
+        Serial.print(", theta=");
+        Serial.println(GETRPose(avg_distances).theta);
                 AdjustPose();
                 //打印当前机器人位置
                 GotoPose(700, 0, 0 , true, false);//点六
                 Serial.println("point6");
                 vTaskDelay(5000 / portTICK_PERIOD_MS);
+                AdjustPose();
+        Serial.print("REALLY pose: x=");
+        Serial.print(GETRPose(avg_distances).x);
+        Serial.print(", y=");
+        Serial.print(GETRPose(avg_distances).y);
+        Serial.print(", theta=");
+        Serial.println(GETRPose(avg_distances).theta);
+                //打印当前机器人位置
+                Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
                 GotoPose(0, 500, 0 , true, false);//点七
                 Serial.println("point7");
-                GotoPose(0, -1000, 0 , true, false);//点八
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                GotoPose(0, -500, 0 , true, false);
+                GotoPose(0, -500, 0 , true, false);//点八
                 Serial.println("point8");
-                GotoPose(0, -300, 0 , true, false);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                GotoPose(0, -400, 0 , true, false);
                 GotoPose(0, 0, -90 , true, false);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
                 GotoPose(100, 0, 0 , true, false);
-                //AdjustPose();
+                Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
+        Serial.print("REALLY pose: x=");
+        Serial.print(GETRPose(avg_distances).x);
+        Serial.print(", y=");
+        Serial.print(GETRPose(avg_distances).y);
+        Serial.print(", theta=");
+        Serial.println(GETRPose(avg_distances).theta);          
+                AdjustPose();
+                Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
                 GotoPose(0, -100, 0 , true, false);//点九
                 Serial.println("point9");
                 vTaskDelay(5000 / portTICK_PERIOD_MS);
@@ -141,15 +167,23 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoPose(-100, 0, 0 , true, false);
                 GotoPose(0, 0, -90 , true, false);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
-                GotoPose(0, -1000, 0 , true, false);
+                GotoPose(0, -800, 0 , true, false);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
                 GETRPose(avg_distances);//获取当前机器人位置
                 //打印当前机器人位置
                 Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
                 AdjustPose();
-                GETRPose(avg_distances);//获取当前机器人位置
+        Serial.print("REALLY pose: x=");
+        Serial.print(GETRPose(avg_distances).x);
+        Serial.print(", y=");
+        Serial.print(GETRPose(avg_distances).y);
+        Serial.print(", theta=");
+        Serial.println(GETRPose(avg_distances).theta);
                 //打印当前机器人理想位置
                 Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
-                GotoPose(0, 1000, 0, true, false);
+                GotoPose(0, 500, 0, true, false);
+                GotoPose(0, 500, 0, true, false);
+                GotoPose(500, 0, 0, true, false);
                 GotoPose(500, 0, 0 , true, false);//点十三
                 Serial.println("point13");
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
