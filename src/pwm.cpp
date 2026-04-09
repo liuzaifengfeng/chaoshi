@@ -13,11 +13,13 @@ void initPWM() {
   ledcSetup(2, 50, 13);
   ledcSetup(3, 50, 13);
   ledcSetup(4, 50, 13);
+  ledcSetup(5, 50, 13);
   // 2. 将引脚绑定到通道
   ledcAttachPin(4, 1);
   ledcAttachPin(5, 2);
   ledcAttachPin(6, 3);
   ledcAttachPin(7, 4);
+  ledcAttachPin(8, 5);
 }
  
 // 计算角度对应的 PWM 数值

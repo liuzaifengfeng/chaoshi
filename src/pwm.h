@@ -8,6 +8,8 @@
 #define PWM2_PIN 5
 #define PWM3_PIN 6
 #define PWM4_PIN 7
+#define PWM5_PIN 8
+
 
 // 函数声明
 void initPWM();

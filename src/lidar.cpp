@@ -349,9 +349,9 @@ RobotPose GETRPose(int dists[4]) {
 bool AdjustPose() {
         int retryCount = 0;
 
-        float posThreshold = 10.0f; // 10mm
-        float angleThreshold = 1.0f; // 1度
-        int maxRetries = 3; // 最大重试次数
+        float posThreshold = 20.0f; // 20mm
+        float angleThreshold = 2.0f; // 2度
+        int maxRetries = 2; // 最大重试次数
     
     while (retryCount < maxRetries) {
         // 1. 获取实际位置
@@ -395,7 +395,8 @@ bool AdjustPose() {
         
         // 再调整位置
         if (needAdjustX || needAdjustY) {
-            GotoPose(deltaX, deltaY, 0, true);
+            GotoPose(deltaX, 0, 0, true);
+            GotoPose(0, deltaY, 0, true);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
         
