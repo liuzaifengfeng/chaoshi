@@ -5,9 +5,9 @@
 
 // 引脚定义
 #define PWM1_PIN 4
-#define PWM2_PIN 5
-#define PWM3_PIN 6
-#define PWM4_PIN 7
+#define PWM2_PIN 6
+#define PWM3_PIN 7
+#define PWM4_PIN 5
 #define PWM5_PIN 8
 
 

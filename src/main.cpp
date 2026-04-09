@@ -15,7 +15,7 @@
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 //RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
-bool isdebug = false;//是否调试模式
+bool isdebug = true;//是否调试模式
 
 // 机器人舵机角度结构体
 struct RobotAngle {
