@@ -64,7 +64,7 @@ extern TaskHandle_t TaskLidarHandle;
 void TaskLidarProcess(void *pvParameters);// 处理雷达初始数据的任务
 void initLidar();// 初始化雷达
 RobotPose GETRPose(int dists[4]);// 计算机器人坐标
-void GotoPose(float x, float y, float theta,bool isRelative);// 移动机器人到指定位置
+void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust);// 移动机器人到指定位置
 bool AdjustPose();// 位置微调函数
 
 #endif // LIDAR_H

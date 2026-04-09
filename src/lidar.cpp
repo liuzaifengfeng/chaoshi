@@ -116,10 +116,11 @@ void TaskLidarProcess(void *pvParameters) {
  * @param y 目标Y坐标
  * @param theta 目标角度
  * @param isRelative 0:绝对坐标 1:相对坐标
+ * @param isAdjust 是否更改理想位置
  * @return void
  */
-void GotoPose(float x, float y, float theta,bool isRelative) {
-    int speed = 200;//移动速度  
+void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
+    int speed = 100;//移动速度  
 
     if (isRelative) {//相对坐标
        if(x != 0 || y != 0 ) {//平行移动
@@ -198,26 +199,32 @@ void GotoPose(float x, float y, float theta,bool isRelative) {
         }
        }
 
-       //更新当前位置
-       if(currentPose.theta == 0) {
-        currentPose.x += x;
-        currentPose.y += y;
-       } else if(currentPose.theta == 90) {
-        currentPose.y += x;
-        currentPose.x -= y;
-       } else if(currentPose.theta == 180) {
-        currentPose.x -= x;
-        currentPose.y -= y;
-       } else if(currentPose.theta == 270) {
-        currentPose.y -= x;
-        currentPose.x += y;
-       }
-       currentPose.theta += theta;
-       if(currentPose.theta < 0) {
-        currentPose.theta += 360;
-       } else if(currentPose.theta > 360) {
-        currentPose.theta -= 360;
-       }
+       if(isAdjust) {//位置微调
+
+       }else{
+
+        //更新当前位置
+        if(currentPose.theta == 0) {
+         currentPose.x += x;
+         currentPose.y += y;
+        } else if(currentPose.theta == 90) {
+         currentPose.y += x;
+         currentPose.x -= y;
+        } else if(currentPose.theta == 180) {
+         currentPose.x -= x;
+         currentPose.y -= y;
+        } else if(currentPose.theta == 270) {
+         currentPose.y -= x;
+         currentPose.x += y;
+        }
+        currentPose.theta += theta;
+        if(currentPose.theta < 0) {
+         currentPose.theta += 360;
+        } else if(currentPose.theta > 360) {
+         currentPose.theta -= 360;
+        }
+
+        }
 
     } else {//绝对坐标
         //暂不支持
@@ -350,8 +357,9 @@ bool AdjustPose() {
         int retryCount = 0;
 
         float posThreshold = 20.0f; // 20mm
-        float angleThreshold = 2.0f; // 2度
-        int maxRetries = 2; // 最大重试次数
+        float angleThreshold = 1.0f; // 1度
+        int maxRetries = 1; // 最大重试次数
+        float adjustRatio = 0.9f;  // 矫正系数比例，用于调整微调系数
     
     while (retryCount < maxRetries) {
         // 1. 获取实际位置
@@ -389,14 +397,15 @@ bool AdjustPose() {
         
         // 先调整角度
         if (needAdjustTheta) {
-            GotoPose(0, 0, deltaTheta, true);
+            GotoPose(0, 0, deltaTheta * adjustRatio, true, true);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
         
         // 再调整位置
         if (needAdjustX || needAdjustY) {
-            GotoPose(deltaX, 0, 0, true);
-            GotoPose(0, deltaY, 0, true);
+            GotoPose(deltaX * adjustRatio, 0, 0, true, true);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            GotoPose(0, deltaY * adjustRatio, 0, true, true);
             vTaskDelay(pdMS_TO_TICKS(500));
         }
         

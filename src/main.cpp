@@ -15,7 +15,7 @@
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 //RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
-bool isdebug = true;//是否调试模式
+bool isdebug = false;//是否调试模式
 
 // 机器人舵机角度结构体
 struct RobotAngle {
@@ -69,27 +69,24 @@ enum RobotState {
 // 主状态机任务函数（正常运行模式）
 void Task_MainStateMachine(void *pvParameters) {
     RobotState currentState = STATE_INIT_WAIT;
-    
-
-
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    Serial.println("start"); 
     for (;;) {
         switch (currentState) {
             
             case STATE_INIT_WAIT:
-                // 1. 强制静止10秒，期间裁判调整位置 [cite: 75, 76]
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                
+                // 1. 强制静止10秒
+                Serial.println("point1");
+                vTaskDelay(10000 / portTICK_PERIOD_MS);//点一
                 currentState = STATE_READ_ORDER;
                 break;
 
             case STATE_READ_ORDER:
-                GotoPose(1300, 0, 0, false);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(0, 200, 0 , false);
+                GotoPose(1300, 0, 0, true, false);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
-                ledcWrite( 3, 140);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(0, -200, 0 , false);
+                Serial.println("point2");
+                vTaskDelay(2000 / portTICK_PERIOD_MS);//点二
                 //AdjustPose();
                 for (int i = 0; i < 10; i++) {//10秒超时，未收到到购物需求，则先前往货架1/2的第一层抓取补货物品
                     if (isOrderReceived) {
@@ -97,59 +94,94 @@ void Task_MainStateMachine(void *pvParameters) {
                     }
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                 }
-                GotoPose(0, -200, 0 , false);
-                ledcWrite( 3, 50);
-                GotoPose(0, 700, 0 , false);
-                GotoPose(750, 0, 0 , false);
-                GotoPose(0, 500, 0 , false);
-                GotoPose(0, 500, 0 , false);
+                GotoPose(0, 400, 0 , true, false);
+                //ledcWrite( 3, 50);
+                GotoPose(700, 0, 0 , true, false);//点三
+                Serial.println("point3");
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                GotoPose(0, 1000, 0 , true, false);//点四
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                Serial.println("point4");
+                GotoPose(0, -500, 0 , true, false);//点五
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                Serial.println("point5");
                 vTaskDelay(5000 / portTICK_PERIOD_MS);
-                GotoPose(0, 500, 0 , false);
-
-                // 向串口发送识别指令，等待视觉模块回复需求
-                // TODO: 串口发送 "GET_ORDER"，等待解析 A4 纸信息 [cite: 56]
-                //if (/* 收到需求并记录清单 */) { currentState = STATE_PRE_REPLENISH;}
+                GotoPose(-700, 0, 0 , true, false);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                GotoPose(0, 0, 180 , true, false);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);//场地中央
+                Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
+                GETRPose(avg_distances);//获取当前机器人位置
+                AdjustPose();
+                //打印当前机器人位置
+                GotoPose(700, 0, 0 , true, false);//点六
+                Serial.println("point6");
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                GotoPose(0, 500, 0 , true, false);//点七
+                Serial.println("point7");
+                GotoPose(0, -1000, 0 , true, false);//点八
+                Serial.println("point8");
+                GotoPose(0, -300, 0 , true, false);
+                GotoPose(0, 0, -90 , true, false);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                GotoPose(100, 0, 0 , true, false);
+                //AdjustPose();
+                GotoPose(0, -100, 0 , true, false);//点九
+                Serial.println("point9");
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                GotoPose(0, -300, 0 , true, false);//点十
+                Serial.println("point10");
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                GotoPose(0, -300, 0 , true, false);//点十一
+                Serial.println("point11");
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                GotoPose(0, -300, 0 , true, false);//点十二
+                Serial.println("point12");
+                vTaskDelay(5000 / portTICK_PERIOD_MS);
+                GotoPose(-100, 0, 0 , true, false);
+                GotoPose(0, 0, -90 , true, false);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                GotoPose(0, -1000, 0 , true, false);
+                GETRPose(avg_distances);//获取当前机器人位置
+                //打印当前机器人位置
+                Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
+                AdjustPose();
+                GETRPose(avg_distances);//获取当前机器人位置
+                //打印当前机器人理想位置
+                Serial.println("currentPose: " + String(currentPose.x) + ", " + String(currentPose.y) + ", " + String(currentPose.theta));
+                GotoPose(0, 1000, 0, true, false);
+                GotoPose(500, 0, 0 , true, false);//点十三
+                Serial.println("point13");
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                Serial.println("finish");
+                vTaskDelete(NULL); 
                 break;
 
             case STATE_PRE_REPLENISH:
-                // 从货架1和2的第一层抓取待补货物品：锐澳、百事、旺仔、维他奶 [cite: 64]
+                // 从货架1和2的第一层抓取待补货物品：锐澳、百事、旺仔、维他奶 
                 // 遍历货架1/2 第一层
-                GotoPose(0, -200, 0 , false);
-                // 视觉辅助识别并抓取
-                if (replenishDone < 4) {
-                    // 抓取逻辑
-                    itemsPicked++;
-                    if (itemsPicked >= 4) currentState = STATE_DO_REPLENISH;
-                }
+
+
                 break;
 
             case STATE_DO_REPLENISH:
-                // 将抓到的4个物品放入第三层红线标记的指定位置 [cite: 64]
-                //MoveToShelf(1, 3);
-                // 执行放置动作 [cite: 71]
+                // 将抓到的4个物品放入第三层红线标记的指定位置 
+                // 执行放置动作 
                 currentState = STATE_GO_SHOPPING;
                 break;
 
             case STATE_GO_SHOPPING:
-                // 前往第二层寻找6个清单物品 [cite: 60, 62]
-                // 注意：每个货架第二层必有3个目标，且1个在内侧 [cite: 62]
-                //MoveToShelf(1, 2);
+                // 前往第二层寻找6个清单物品
                 // 识别->回复"yes"->执行抓取动作
-                //if (/* 抓满6件 */) currentState = STATE_DELIVERING;
                 break;
 
             case STATE_DELIVERING:
                 // 前往提货区，识别头像匹配目标顾客 [cite: 62]
-                // 提货区长宽300x300，并排4个 [cite: 41, 42]
-                //GotoPose(DELIVERY_AREA_X, DELIVERY_AREA_Y, 0, true);
-                // 投放物品至对应提货箱 [cite: 69]
                 currentState = STATE_FINISH_HOME;
                 break;
 
             case STATE_FINISH_HOME:
-                // 必须在8分钟内完全进入终点区（蓝色边界） [cite: 54, 66]
-                //GotoPose(END_ZONE_X, END_ZONE_Y, 0, true);
-                // 触发停止计时 [cite: 66, 72]
+                // 必须在8分钟内完全进入终点区
                 vTaskDelete(NULL); 
                 break;
         }
@@ -194,18 +226,7 @@ void Task_Debug_Mode(void *pvParameters){
     // 从队列中接收命令
     if(xQueueReceive(xDebugQueue, &cmd, portMAX_DELAY) == pdPASS){
 
-      if(strcmp(cmd.cmd, "GOTOpose") == 0){
-        // 执行GOTOpose命令
-        Serial.print("Executing GOTOpose: x=");
-        Serial.print(cmd.param1);
-        Serial.print(", y=");
-        Serial.print(cmd.param2);
-        Serial.print(", theta=");
-        Serial.println(cmd.param3);
-        // 使用GotoPose函数移动机器人到指定位置
-        GotoPose(cmd.param1, cmd.param2, cmd.param3, true);
-
-      } else if(strcmp(cmd.cmd, "GOTOpose") == 0){
+       if(strcmp(cmd.cmd, "GOTOpose") == 0){
         // 执行GOTOposetf命令
         Serial.print("Executing GOTOpose: x=");
         Serial.print(cmd.param1);
@@ -214,7 +235,7 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.print(", theta=");
         Serial.println(cmd.param3);
         // 使用GotoPose函数移动机器人到指定位置
-        GotoPose(cmd.param1, cmd.param2, cmd.param3, false);
+        GotoPose(cmd.param1, cmd.param2, cmd.param3, true, false);
         
       } else if(strcmp(cmd.cmd, "GETCpose") == 0){
         // 执行GETCpose命令
