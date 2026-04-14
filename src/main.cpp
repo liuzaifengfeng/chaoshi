@@ -7,15 +7,26 @@
 #include <Arduino.h>
 #include <FreeRTOS.h>
 #include <task.h>
+#include <FastLED.h>
+#include "ota_service.h"
 
 #include "Emm_V5.h"
 #include "lidar.h"
 #include "pwm.h"
 
+#define MODE_key 0
+#define LED_PIN 48
+#define NUM_LEDS 1
+#define OTA_HOSTNAME "esp32-chaoshi"
+#define VERSION "1.0.0"
+
+// LED数组
+CRGB leds[NUM_LEDS];
+
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 //RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
-bool isdebug = true;//是否调试模式
+bool isdebug = false;//是否调试模式
 
 // 机器人舵机角度结构体
 struct RobotAngle {
@@ -403,18 +414,54 @@ void setup() {
   initLidar();
   // 初始化电机
   Emm_V5_Init();
+  // 初始化FastLED
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.setBrightness(50);  // 设置亮度为50%
 
   currentPose = {250, 400, 0};//初始化机器人中心位置为(250mm,400mm,0)
+
+  init_ota_service("null", "1234567899", OTA_HOSTNAME);
+  
+  // WiFi连接成功后设为红色
+  leds[0] = CRGB::Red;
+  FastLED.show();
+
+
+  // 初始化时延时十秒，监测boot按键
+  pinMode(MODE_key, INPUT_PULLUP);  // 设置MODE_key为输入模式，启用上拉电阻
+  Serial.println("Waiting for 10 seconds, press MODE_key to enter debug mode...");
+  
+  unsigned long startTime = millis();
+  bool bootKeyPressed = false;
+  
+  while (millis() - startTime < 10000) {  // 延时10秒
+    if (digitalRead(MODE_key) == LOW) {  // 检测按键是否按下（低电平）
+      bootKeyPressed = true;
+      Serial.println("MODE_key pressed, entering debug mode...");
+      break;
+    }
+    vTaskDelay(10 / portTICK_PERIOD_MS);  // 短暂延时，避免占用过多CPU资源
+  }
+  
+  if (bootKeyPressed) {
+    isdebug = true;
+  }
 
   //开启程序
   if (isdebug) {
     Serial.println("Debug mode ");//调试模式 开启对应任务
+    // 调试模式设为黄色
+    leds[0] = CRGB::Yellow;
+    FastLED.show();
     xDebugQueue = xQueueCreate(20, sizeof(DebugCommand_t));  // 初始化调试队列
     if (xDebugQueue == NULL) { Serial.println("Failed to create debug queue");}
     xTaskCreate(Task_Debug_Mode, "Task_Debug_Mode", 8192, NULL, 5, NULL);
     xTaskCreate(Task_Debug_Serial0_CMD, "Task_Debug_Serial0_CMD", 8192, NULL, 5, NULL);
   } else {
     Serial.println("Release mode ");//正常运行 开启对应任务
+    // 正常模式设为绿色
+    leds[0] = CRGB::Green;
+    FastLED.show();
     xTaskCreate(Task_MainStateMachine, "Task_MainStateMachine", 8192, NULL, 5, NULL);
     xTaskCreate(Task_Main_Serial0_CMD, "Task_Main_Serial0_CMD", 8192, NULL, 5, NULL);
   }
