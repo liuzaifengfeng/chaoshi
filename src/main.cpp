@@ -99,6 +99,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 Serial.println("point2");
                 vTaskDelay(2000 / portTICK_PERIOD_MS);//点二
                 //AdjustPose();
+                //ledcWrite( 1, 20);//图像大臂完全抬起
                 for (int i = 0; i < 10; i++) {//10秒超时，未收到到购物需求，则先前往货架1/2的第一层抓取补货物品
                     if (isOrderReceived) {
                         break;
@@ -347,6 +348,7 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.println("GETpose");
         Serial.println("GETdist");
         Serial.println("EMMpos addr dir clk");
+        Serial.println("PWM addr angle");
         Serial.println("reset");
         Serial.println("help");
            
@@ -466,13 +468,16 @@ void setup() {
     xTaskCreate(Task_Main_Serial0_CMD, "Task_Main_Serial0_CMD", 8192, NULL, 5, NULL);
   }
 
+  ledcWrite(1,250 );//图像大臂完全放下
+  ledcWrite(2,330 );//夹臂完全收回
+  ledcWrite(3,80 );//夹爪闭合
+
   Serial.println("Supermarket robot initialized");
 
 }
 
 void loop() {
 
-  //ledcWrite(0, angleToDuty(90));
   vTaskDelete(NULL);
                     
 }
