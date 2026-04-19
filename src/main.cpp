@@ -50,7 +50,7 @@ struct RobotAngle {
  float X_PULSE = 10.5f;
  float Y_PULSE = 11.4f;
  float THETA_PULSE = 84.0f;
- float HEIGHT_PULSE = 3.23f;
+ float HEIGHT_PULSE = 32.26f;
 
 // Debug命令队列
 QueueHandle_t xDebugQueue;

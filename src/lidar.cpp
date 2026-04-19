@@ -112,11 +112,14 @@ void TaskLidarProcess(void *pvParameters) {
 
 /**
  * @brief 移动机器人到指定高度
- * @param height 目标高度
+ * @param height 目标高度，单位：mm 0-300-600（一层，二层，三层）
  * @return void
  */
 void GotoHeight(float height) {
     int speed = 100;//移动速度  
+    if(height < 0 || height > 640) {
+        return;//高度超出范围
+    }
     Emm_V5_Pos_Control( 5, 0, speed, 50, height * HEIGHT_PULSE, 1, 0);
     vTaskDelay(pdMS_TO_TICKS(100));
 }
@@ -131,7 +134,7 @@ void GotoHeight(float height) {
  * @return void
  */
 void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
-    int speed = 100;//移动速度  
+    int speed = 10;//移动速度  
 
     if (isRelative) {//相对坐标
        if(x != 0 || y != 0 ) {//平行移动
