@@ -21,6 +21,13 @@ void initPWM() {
   ledcAttachPin(PWM3_PIN, 3);
   ledcAttachPin(PWM4_PIN, 4);
   ledcAttachPin(PWM5_PIN, 5);
+
+  ledcWrite(1,angleToDuty(250) );//图像大臂完全放下，20完全抬起
+  ledcWrite(2,angleToDuty(285) );//夹臂完全收回，45完全打开
+  ledcWrite(3,angleToDuty(180) );//夹爪闭合，0大打开
+  ledcWrite(4,angleToDuty(0) );//料台收回，270伸出
+  ledcWrite(5,angleToDuty(240) );//挡板完全关闭，90完全打开
+
 }
  
 // 计算角度对应的 PWM 数值

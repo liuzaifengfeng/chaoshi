@@ -111,6 +111,17 @@ void TaskLidarProcess(void *pvParameters) {
 }
 
 /**
+ * @brief 移动机器人到指定高度
+ * @param height 目标高度
+ * @return void
+ */
+void GotoHeight(float height) {
+    int speed = 100;//移动速度  
+    Emm_V5_Pos_Control( 5, 0, speed, 50, height * HEIGHT_PULSE, 1, 0);
+    vTaskDelay(pdMS_TO_TICKS(100));
+}
+
+/**
  * @brief 移动机器人到指定位置
  * @param x 目标X坐标
  * @param y 目标Y坐标
@@ -227,8 +238,26 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
         }
 
     } else {//绝对坐标
-        //暂不支持
-        Serial.println("Error: GotoPose() absolute position not supported");
+        //先移动x轴
+        if(currentPose.x - x != 0){
+        GotoPose(x - currentPose.x, 0, 0 , true, false);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+        //再移动y轴
+        if(currentPose.y - y != 0){
+        GotoPose(0, y - currentPose.y, 0, true, false);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+        //再旋转到目标角度
+        if(currentPose.theta - theta != 0){
+        GotoPose(0, 0, theta - currentPose.theta, true, false);
+        vTaskDelay(pdMS_TO_TICKS(3000));
+        }
+
+        //更新当前位置
+        currentPose.x = x;
+        currentPose.y = y;
+        currentPose.theta = theta;
     }
 }
 

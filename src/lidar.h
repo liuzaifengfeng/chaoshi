@@ -20,6 +20,8 @@ struct RobotPose {
 extern float X_PULSE;
 extern float Y_PULSE;
 extern float THETA_PULSE;
+extern float HEIGHT_PULSE;
+
 extern bool BetweenShelves;//是否在货架货架之间
 extern RobotPose currentPose;//当前机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 
@@ -66,5 +68,7 @@ void initLidar();// 初始化雷达
 RobotPose GETRPose(int dists[4]);// 计算机器人坐标
 void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust);// 移动机器人到指定位置
 bool AdjustPose();// 位置微调函数
+void GotoHeight(float height);// 移动机器人大臂到指定高度
+
 
 #endif // LIDAR_H
