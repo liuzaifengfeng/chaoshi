@@ -429,10 +429,10 @@ RobotPose GETRPose(int dists[4]) {
 bool AdjustPose() {
         int retryCount = 0;
 
-        float posThreshold = 20.0f; // 20mm
-        float angleThreshold = 1.0f; // 1度
+        float posThreshold = 10.0f; // 10mm
+        float angleThreshold = 0.5f; // 0.5度
         int maxRetries = 1; // 最大重试次数
-        float adjustRatio = 0.9f;  // 矫正系数比例，用于调整微调系数
+        float adjustRatio = 1.0f;  // 矫正系数比例，用于调整微调系数
     
     while (retryCount < maxRetries) {
         // 1. 获取实际位置
