@@ -129,12 +129,12 @@ void GotoHeight(float height) {
  * @param x 目标X坐标
  * @param y 目标Y坐标
  * @param theta 目标角度
- * @param isRelative 0:绝对坐标 1:相对坐标
- * @param isAdjust 是否更改理想位置
+ * @param isRelative false:绝对坐标 true:相对坐标
+ * @param isAdjust 是否更改理想位置,默认false
  * @return void
  */
 void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
-    int speed = 10;//移动速度  
+    int speed = 70;//移动速度  
 
     if (isRelative) {//相对坐标
        if(x != 0 || y != 0 ) {//平行移动
@@ -149,7 +149,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 1, speed, 50, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(3000));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x)));
         } else if(x < 0) {
             Emm_V5_Pos_Control( 1, 1, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -160,7 +160,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 0, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(3000));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x)));
         }
         
         if(y > 0) {
@@ -173,7 +173,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 1, speed, 50, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(3000));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y)));
         } else if(y < 0) {
             Emm_V5_Pos_Control( 1, 1, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -184,7 +184,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 0, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(3000));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y)));
         }
 
        } else if(theta != 0) {//旋转移动
@@ -198,7 +198,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 0, speed, 50, theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(3000));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta)));
         } else if(theta <0){
             Emm_V5_Pos_Control( 1, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -209,7 +209,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(3000));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta)));
         }
        }
 
@@ -241,22 +241,63 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
         }
 
     } else {//绝对坐标
-        //先移动x轴
-        if(currentPose.x - x != 0){
-        GotoPose(x - currentPose.x, 0, 0 , true, false);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        }
-        //再移动y轴
-        if(currentPose.y - y != 0){
-        GotoPose(0, y - currentPose.y, 0, true, false);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        }
-        //再旋转到目标角度
-        if(currentPose.theta - theta != 0){
-        GotoPose(0, 0, theta - currentPose.theta, true, false);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        }
+        //先判断方向
+        if(currentPose.theta == 0) {
+            if(currentPose.x - x != 0){
+                GotoPose(x - currentPose.x, 0, 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x-currentPose.x)));
+            }
+            if(currentPose.y - y != 0){
+                GotoPose(0, y - currentPose.y, 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y-currentPose.y)));
+            }
+            if(currentPose.theta - theta != 0){
+                GotoPose(0, 0, theta - currentPose.theta, true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+            }
 
+        } else if(currentPose.theta == 90){
+            if(currentPose.y - x != 0){
+                GotoPose(0, -x + currentPose.x, 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x-currentPose.y)));
+            }
+            if(currentPose.x - y != 0){
+                GotoPose(y - currentPose.y, 0, 0, true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y-currentPose.x)));
+            }
+            if(currentPose.theta - theta != 0){
+                GotoPose(0, 0, theta - currentPose.theta, true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+            }
+
+        } else if(currentPose.theta == 180){
+            if(currentPose.x - x != 0){
+                GotoPose(currentPose.x - x , 0, 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x-currentPose.x)));
+            }
+            if(currentPose.y - y != 0){
+                GotoPose(0, currentPose.y - y , 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y-currentPose.y)));
+            }
+            if(currentPose.theta - theta != 0){
+                GotoPose(0, 0, theta - currentPose.theta,  true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+            }
+
+        } else if(currentPose.theta == 270){
+            if(currentPose.y - x != 0){
+                GotoPose(0, x - currentPose.x, 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x-currentPose.y)));
+            }
+            if(currentPose.x - y != 0){
+                GotoPose(-y + currentPose.y, 0, 0 , true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y-currentPose.x)));
+            }
+            if(currentPose.theta - theta != 0){
+                GotoPose(0, 0, theta - currentPose.theta, true, false);
+                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+            }
+        }
         //更新当前位置
         currentPose.x = x;
         currentPose.y = y;

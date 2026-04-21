@@ -17,15 +17,15 @@
 #define MODE_key 0
 #define LED_PIN 48
 #define NUM_LEDS 1
-#define OTA_HOSTNAME "esp32-chaoshi"
+#define OTA_HOSTNAME "espchaoshi"
 #define VERSION "1.2.0"
 
-//四个待补货商品位置（二维数组），{货架号,格子号，角度，是否完成}
+//四个待补货商品位置（二维数组），{ x坐标, y坐标, theta角度, 是否完成}
 float buhuo[4][4] = {
-    {1, 3, 0, 0}, // 商品1 锐澳水蜜桃 
-    {1, 5, 0, 0}, // 商品2 百事可乐
-    {2, 1, 0, 0}, // 商品3 旺仔牛奶
-    {2, 4, 0, 0}  // 商品4 维他奶
+    {2230, 1300, 0, 0}, // 商品1 锐澳水蜜桃 
+    {2230, 1480, 0, 0}, // 商品2 百事可乐
+    {850, 1660, 180, 0}, // 商品3 旺仔牛奶
+    {850, 1300, 180, 0}  // 商品4 维他奶
 };
 int getBuhuoIndex = 0;//当前需要补货的商品索引
 
@@ -83,169 +83,288 @@ enum RobotState {
 };
 
   // 购物清单与任务记录（具体结构根据实际需求补充）
-  volatile bool isOrderReceived = false;//是否拍到购物需求
+  bool isOrderReceived = false;//是否拍到购物需求
   int itemsPicked = 0;//已抓取物品数量
   bool isinorder = false;//是否在清单上的物品
   int replenishDone = 0;//已补货物品数量
-  bool isCustomerReceived = false;  //是否识别到顾客
+  bool isCustomer = false;  //是否识别到顾客
 
 // 主状态机任务函数（正常运行模式）
 void Task_MainStateMachine(void *pvParameters) {
+    int buhuoNOW = 0;//当前爪子上面的补货商品索引
+    int buhuoover = 0;//已经查看的一层商品数量
+    int buhuoover_temp = 0;//查看的一层商品数量,临时赋给for循环
+
+    int caowei[2][3][7] = { //货架号，层号，槽位号
+    { // 货架0
+        {0, 0, 0, 0, 0, 0, 0}, // 层0的7个槽位
+        {0, 0, 0, 0, 0, 0, 0}, // 层1的7个槽位
+        {0, 0, 0, 0, 0, 0, 0}  // 层2的7个槽位
+    },
+    { // 货架1
+        {0, 0, 0, 0, 0, 0, 0}, // 层0的7个槽位
+        {0, 0, 0, 0, 0, 0, 0}, // 层1的7个槽位
+        {0, 0, 0, 0, 0, 0, 0}  // 层2的7个槽位
+    }
+    };
+
     RobotState currentState = STATE_INIT_WAIT;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     Serial.println("start"); 
-    for (;;) {
+    while (1) {
         switch (currentState) {
             
             case STATE_INIT_WAIT:
                 // 1. 强制静止10秒
                 Serial.println("point1");
-                vTaskDelay(10000 / portTICK_PERIOD_MS);//点一
+                vTaskDelay(1000 / portTICK_PERIOD_MS);//点一
                 currentState = STATE_READ_ORDER;
                 break;
 
             case STATE_READ_ORDER:
-                ledcWrite( 1, 20);//图像大臂完全抬起
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(1300, 0, 0, true, false);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                Serial.println("point2");
-                for (int i = 0; i < 20; i++) {//10秒超时，未收到到购物需求，则先前往货架1/2的第一层抓取补货物品
+                ledcWrite( 1, angleToDuty(20));//图像大臂完全抬起
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+                Serial.println("taiqi");
+                GotoPose(1100, 0, 0, true, false);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+                Serial.println("look");
+                vTaskDelay(200 / portTICK_PERIOD_MS);
+                Serial.println("0");//开启上位机的OCR功能
+                for (int i = 0; i < 30; i++) {//30秒超时，未收到到购物需求，则先前往货架1/2的第一层抓取补货物品
+                    vTaskDelay(1000 / portTICK_PERIOD_MS); 
+                    Serial.println("i="+String(i));
                     if (isOrderReceived) {
                         break;
                     }
-                    vTaskDelay(1000 / portTICK_PERIOD_MS);
                 }
-                GotoPose(700, 0, 0 , true, false);
+                GotoPose(880, 0, 0 , true, false);
+                ledcWrite( 1, angleToDuty(250));//图像大臂放下
+                GotoPose(0, 650, 0 , true, false);//开始采集
+                GotoHeight(500);
                 AdjustPose();
-                GotoPose(0, 350, 0 , true, false);//点三
                 Serial.println("point3");
-                /*
-                GotoPose(0, 1000, 0 , true, false);//点四
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                Serial.println("point4");
-                GotoPose(0, -500, 0 , true, false);//点五
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                Serial.println("point5");
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
-                GotoPose(-700, 0, 0 , true, false);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(0, 0, 180 , true, false);
-                vTaskDelay(3000 / portTICK_PERIOD_MS);//场地中央
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                ledcWrite( 2, angleToDuty(60));//夹臂完全打开
+                vTaskDelay(500 / portTICK_PERIOD_MS);
+                ledcWrite( 3, angleToDuty(0));//夹爪完全打开
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                GotoHeight(0);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-                AdjustPose();
-                //打印当前机器人位置
-                GotoPose(700, 0, 0 , true, false);//点六
-                Serial.println("point6");
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
-                AdjustPose();
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(0, 500, 0 , true, false);//点七
-                Serial.println("point7");
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(0, -500, 0 , true, false);
-                GotoPose(0, -500, 0 , true, false);//点八
-                Serial.println("point8");
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(0, -400, 0 , true, false);
-                GotoPose(0, 0, -90 , true, false);
-                vTaskDelay(2000 / portTICK_PERIOD_MS);
-                GotoPose(100, 0, 0 , true, false);   
-                AdjustPose();
-                GotoPose(0, -100, 0 , true, false);//点九
-                Serial.println("point9");
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
-                GotoPose(0, -300, 0 , true, false);//点十
-                Serial.println("point10");
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
-                GotoPose(0, -300, 0 , true, false);//点十一
-                Serial.println("point11");
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
-                GotoPose(0, -300, 0 , true, false);//点十二
-                Serial.println("point12");
-                vTaskDelay(5000 / portTICK_PERIOD_MS);
-                GotoPose(-100, 0, 0 , true, false);
-                GotoPose(0, 0, -90 , true, false);
-                vTaskDelay(2000 / portTICK_PERIOD_MS);
-                GotoPose(0, -800, 0 , true, false);
-                vTaskDelay(2000 / portTICK_PERIOD_MS);
-                GotoPose(0, 500, 0, true, false);
-                GotoPose(0, 500, 0, true, false);
-                GotoPose(500, 0, 0, true, false);
-                GotoPose(500, 0, 0 , true, false);//点十三
-                Serial.println("point13");
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                Serial.println("finish");
-                //vTaskDelete(NULL); 
-                break;
-                */
                currentState = STATE_PRE_REPLENISH;
                break;
 
-            case STATE_PRE_REPLENISH:
+            case STATE_PRE_REPLENISH://前往货架1/2的第一层抓取补货物品
                 // 从货架1和2的第一层抓取待补货物品：锐澳、百事、旺仔、维他奶 
                 // 遍历货架1/2 第一层
-                
-                ledcWrite( 2, 90);//夹臂完全打开
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                //开始遍历
-                getBuhuoIndex = 0;
-                for(int i = 0; i < 5; i++) {//每个货架5个位置
-                    if(getBuhuoIndex != 0) {
-                      //抓取动作
-                      currentState = STATE_DO_REPLENISH;
-                      break;
-                    }
-                }
-                break;
 
-            case STATE_DO_REPLENISH:
+                Serial.println("into replenish" + String(buhuoover));
+
+                GotoHeight(0);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+
+                if(buhuoover <= 6) {//货架1 的补货未完成
+                  if(currentPose.theta == 0){
+                    Serial.println("go to "+String(buhuoover));
+                    GotoPose(2230, 1030+buhuoover*128.6, 0 , false, false);
+                  } else{//机器人与补货槽位货架不在同侧，先移动旋转到补货槽位货架
+                    GotoPose(1600, 1300, 0 , false, false);
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    AdjustPose();
+                    GotoPose(2230, 1030+buhuoover*128.6, 0 , false, false);
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  }
+                } else {//货架1 的补货已完成，前往货架2补货
+                    Serial.println("go to "+String(buhuoover));
+                  if(currentPose.theta == 180){
+                    GotoPose(850, 1630-(buhuoover-7)*128.6, 180 , false, false);
+                  } else {//机器人与补货槽位货架不在同侧，先移动旋转到补货槽位货架
+                    GotoPose(1600, 1300, 180 , false, false);
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    AdjustPose();
+                    GotoPose(850, 1630-(buhuoover-7)*128.6, 180 , false, false); 
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  }
+                }
+
+                //开始遍历
+                getBuhuoIndex = 0;//先清零
+
+                if(buhuoover <= 6) {//货架1 的补货未完成
+
+
+                  buhuoover_temp = buhuoover;
+                  for(int i = 1; i <= 7- buhuoover_temp ; i++) {//每个货架7个位置
+                      vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        buhuoover++;                                        
+                      if(getBuhuoIndex != 0) {
+                        Serial.println("get buhuo"+String(getBuhuoIndex));
+                        buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
+                        //抓取动作
+                        GotoPose(100, 0, 0 , true, false);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        ledcWrite( 3, angleToDuty(190));//夹爪闭合
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoHeight(50);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoPose(-100, 0, 0 , true, false);
+                        currentState = STATE_DO_REPLENISH;
+                        break;
+                      } else { 
+                        if(i != 7){
+                         GotoPose(0, 128.6, 0 , true, false);//步进到下一个位置
+                        }
+                      }
+                  }
+                  break;//直接退出重进
+
+                } else if(buhuoover <= 13) {//货架1 的补货已完成，前往货架2补货
+                      buhuoover_temp = buhuoover;
+                      for(int i = 1; i <= 14- buhuoover_temp; i++) {//每个货架7个位置
+                      vTaskDelay(2000 / portTICK_PERIOD_MS);    
+                      buhuoover++;//记录已经查看的一层商品数量                                    
+                      if(getBuhuoIndex != 0) {
+                        Serial.println("get buhuo"+String(getBuhuoIndex));
+                        buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
+                        //抓取动作
+                        GotoPose(100, 0, 0 , true, false);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        ledcWrite( 3, angleToDuty(190));//夹爪闭合
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoHeight(50);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoPose(-100, 0, 0 , true, false);
+                        currentState = STATE_DO_REPLENISH;
+                        break;
+                      } else { 
+                        if(i != 14){
+                         GotoPose(0, 128.6, 0 , true, false);//步进到下一个位置
+                        }
+                      }  
+                  }
+                  break;//直接退出重进
+
+                } else {//补货全部完成
+                  currentState = STATE_GO_SHOPPING;
+                  Serial.println("buhuodone");
+                  break;
+                }
+
+                break;//正常不会执行到这行代码
+
+            case STATE_DO_REPLENISH://执行补货动作
                 // 将抓到的补货物品放入第三层标签标记的指定位置 
                 // 执行放置动作 
 
                 //前往补货槽位
-                //GotoPose(0, 350, 0 , false, false);
+                Serial.println("go to buhuo"+String(buhuoNOW));
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                //如果机器人与补货槽位货架不在同侧，先移动旋转到补货槽位货架
+                if(buhuo[buhuoNOW][3] != currentPose.theta) {
+                  GotoPose(1600, 1300, buhuo[buhuoNOW][3], false, false);//先去场地中央转弯
+                  vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                  GotoHeight(630);
+                  vTaskDelay(4000 / portTICK_PERIOD_MS);
+                  GotoPose(180, 0, 0 , true, false);
+                  ledcWrite( 3, angleToDuty(120));//夹爪半开
+                  vTaskDelay(500 / portTICK_PERIOD_MS);
+                  GotoPose(-180, 0, 0 , true, false);
+                  ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                } else{
+                  GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                  GotoHeight(630);
+                  vTaskDelay(4000 / portTICK_PERIOD_MS);
+                  GotoPose(180, 0, 0 , true, false);
+                  ledcWrite( 3, angleToDuty(120));//夹爪半开
+                  vTaskDelay(500 / portTICK_PERIOD_MS);
+                  GotoPose(-180, 0, 0 , true, false);
+                  ledcWrite( 3, angleToDuty(0));//夹爪大开
+                  GotoHeight(0);
+                }
                 //放置物品
-
 
 
                 //如果所有商品都完成补货，则前往第二层寻找清单物品，否则继续补货
                 if(replenishDone == 4) {
                     currentState = STATE_GO_SHOPPING;
+                    Serial.println("buhuodone");
                 }
                 else {
-                    currentState = STATE_DO_REPLENISH;
+                    currentState = STATE_PRE_REPLENISH;//继续补货，前往补货槽位
                 }
                 break;
 
             case STATE_GO_SHOPPING:
                 // 前往第二层寻找6个清单物品
-                // 上位机识别->收到"yes"->执行抓取动作
-                for(int i = 0; i < 5; i++) {//每个货架5个位置
-                  vTaskDelay(1000 / portTICK_PERIOD_MS);//等待1秒，确保上位机识别完成
-                  if(isinorder) {
-                    //抓取动作
-                    replenishDone++;
-                  }
-                  //向下个位置移动
-                  GotoPose(0, -500, 0 , true, false);
-                }
+                // 上位机识别->收到"get0"->执行抓取动作
 
-                GotoPose(0, 500, 0 , true, false);//对面货架
+                GotoHeight(300);
 
-                for(int i = 0; i < 5; i++) {//第二个货架
-                  vTaskDelay(1000 / portTICK_PERIOD_MS);//等待1秒，确保上位机识别完成
-                  if(isinorder) {
-                    //抓取动作
-                    replenishDone++;
-                    if(replenishDone == 6) {
-                      break;
+                //前往第二个货架提货
+                 GotoPose(850, 1630, 180 , false, false);
+                 vTaskDelay(2000 / portTICK_PERIOD_MS);
+                 AdjustPose();
+                 vTaskDelay(2000 / portTICK_PERIOD_MS);
+                  for(int i = 1; i <= 7 ; i++) {//每个货架7个位置
+                      vTaskDelay(2000 / portTICK_PERIOD_MS);            
+                      if(isinorder != 0) {
+                        Serial.println("get tihuo");
+                        //抓取动作
+                        ledcWrite( 3, angleToDuty(120));
+                        GotoPose(0, 130, 0 , true, false);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        ledcWrite( 3, angleToDuty(190));//夹爪闭合
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoHeight(350);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoPose(-130, 0, 0 , true, false);
+                        GotoHeight(550);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        ledcWrite( 2, angleToDuty(180));
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        ledcWrite( 3, angleToDuty(120));
+                      } else { 
+                        if(i != 7){
+                         GotoPose(0, 128.6, 0 , true, false);//步进到下一个位置
+                        }
+                      }
                     }
-                  }
-                  //向下个位置移动
-                  GotoPose(0, -500, 0 , true, false);
-                } 
+                    
+                    //从中间过去，随便校准
+                    GotoPose(1600, 1300, 0 , false, false);
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                    AdjustPose();
+                    GotoPose(2230, 1030, 0 , false, false); 
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
+                    //前往第一个货架提货
+                      for(int i = 1; i <= 7; i++) {//每个货架7个位置
+                      vTaskDelay(2000 / portTICK_PERIOD_MS);                                     
+                      if(isinorder != 0) {
+                        Serial.println("get tihuo");
+                        //抓取动作
+                        ledcWrite( 3, angleToDuty(120));
+                        GotoPose(0, 130, 0 , true, false);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        ledcWrite( 3, angleToDuty(190));//夹爪闭合
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoHeight(350);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoPose(-130, 0, 0 , true, false);
+                        GotoHeight(550);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        ledcWrite( 2, angleToDuty(180));
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        ledcWrite( 3, angleToDuty(120));
+                        break;
+                      } else { 
+                        if(i != 14){
+                         GotoPose(0, 128.6, 0 , true, false);//步进到下一个位置
+                        }
+                      }  
+                    }
+   
                 //打印完成情况
                 Serial.println("finish shopping: " + String(replenishDone));
                 currentState = STATE_DELIVERING;
@@ -253,20 +372,37 @@ void Task_MainStateMachine(void *pvParameters) {
     
             case STATE_DELIVERING:
                 // 前往提货区，识别头像匹配目标顾客 
+                GotoHeight(400);
+                GotoPose(850, 2200, 90 , false, false);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                AdjustPose();
                 for(int i = 0; i < 4; i++) {//4个顾客
                   vTaskDelay(1000 / portTICK_PERIOD_MS);//等待1秒，确保上位机识别完成
-                  if(isCustomerReceived) {
-                    //抓取动作
-                    replenishDone++;
+                  if(isCustomer) {
+                    //倒料
+                    ledcWrite( 4, angleToDuty(200));
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    ledcWrite( 5, angleToDuty(90));
                   }
                   //向下个位置移动
-                  GotoPose(0, -500, 0 , true, false);
+                  GotoPose(0, -300, 0 , true, false);
                 }
                 currentState = STATE_FINISH_HOME;
                 break;
 
             case STATE_FINISH_HOME:
                 // 必须在8分钟内完全进入终点区
+                ledcWrite( 3, angleToDuty(180));
+                GotoHeight(500);
+                vTaskDelay(4000 / portTICK_PERIOD_MS);
+                ledcWrite( 2, angleToDuty(300));
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                GotoHeight(0);
+                GotoPose(0, 0, -90 , true, false);
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                GotoPose(500, 0, 0 , true, false);
+
+
                 //GotoPose(0, 0, 0 , false, false);//点十三，终点
                 vTaskDelete(NULL); 
                 break;
@@ -275,6 +411,7 @@ void Task_MainStateMachine(void *pvParameters) {
     }
 }
 
+// 主任务串口通信函数（主循环）
 void Task_Main_Serial0_CMD(void *pvParameters) {
     char rxBuffer[64];
     int rxIdx = 0;
@@ -303,12 +440,12 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                     } else if (strcmp(rxBuffer, "GET4") == 0) {
                         // 识别到维他奶
                         getBuhuoIndex = 4;
-                    } else if (strcmp(rxBuffer, "YES") == 0) {
+                    } else if (strcmp(rxBuffer, "GET0") == 0) {
                         // 识别到提货商品
                         isinorder = true;
                     } else if (strcmp(rxBuffer, "GETC") == 0) {
                         // 识别到顾客
-                        isCustomerReceived = true;
+                        isCustomer = true;
                     } 
                     rxIdx = 0;
                 }
@@ -483,11 +620,11 @@ void setup() {
   Emm_V5_Init();
   // 初始化FastLED
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
-  FastLED.setBrightness(50);  // 设置亮度为50%
+  FastLED.setBrightness(10);  // 设置亮度为50%
 
   currentPose = {250, 400, 0};//初始化机器人中心位置为(250mm,400mm,0)
 
-  init_ota_service("null", "1234567899", OTA_HOSTNAME);
+  init_ota_service("null123", "1234567899", OTA_HOSTNAME);
   
   // WiFi连接成功后设为红色
   leds[0] = CRGB::Red;
@@ -540,6 +677,6 @@ void setup() {
 
 void loop() {
 
-  vTaskDelete(NULL);
+vTaskDelay(10000 / portTICK_PERIOD_MS);
                     
 }
