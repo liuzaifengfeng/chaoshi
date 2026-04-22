@@ -36,7 +36,8 @@ CRGB leds[NUM_LEDS];
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 //RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
 bool isdebug = false;//是否调试模式
-bool realy = false;//是否准备好运行
+bool ready = true;//是否准备好运行
+int DX_dist = 0;//补货/提货的视觉X轴偏差
 
 // 机器人舵机角度结构体
 struct RobotAngle {
@@ -52,6 +53,7 @@ struct RobotAngle {
  float Y_PULSE = 11.4f;
  float THETA_PULSE = 84.0f;
  float HEIGHT_PULSE = 32.26f;
+ float DX_PULSE = 0.1f;
 
 // Debug命令队列
 QueueHandle_t xDebugQueue;
@@ -111,6 +113,9 @@ void Task_MainStateMachine(void *pvParameters) {
 
     RobotState currentState = STATE_INIT_WAIT;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    while(!ready);{
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
     Serial.println("start"); 
     while (1) {
         switch (currentState) {
@@ -150,7 +155,6 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoHeight(0);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
                 
-            
                currentState = STATE_PRE_REPLENISH;
                break;
 
@@ -191,13 +195,18 @@ void Task_MainStateMachine(void *pvParameters) {
                 getBuhuoIndex = 0;//先清零
 
                 if(buhuoover <= 6) {//货架1 的补货未完成
-                  buhuoover++;
                   buhuoover_temp = buhuoover;
+                  buhuoover++;
                   getBuhuoIndex = 0;//先清零
                   for(int i = 1; i <= 7- buhuoover_temp ; i++) {//每个货架7个位置
                       getBuhuoIndex = 0;//先清零
+                      DX_dist = 0;//先清零
                       vTaskDelay(3000 / portTICK_PERIOD_MS);
                         buhuoover++; 
+                      if(abs(DX_dist) < 50) {  
+                        GotoPose(DX_dist*DX_PULSE, 0, 0, true, false);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                      }
                       if(getBuhuoIndex != 0) {
                         Serial.println("get buhuo"+String(getBuhuoIndex));
                         buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
@@ -222,13 +231,19 @@ void Task_MainStateMachine(void *pvParameters) {
                   break;//直接退出重进
 
                 } else if(buhuoover <= 13) {//货架1 的补货已完成，前往货架2补货
-                      buhuoover++;
                       buhuoover_temp = buhuoover;
+                      buhuoover++;
                       getBuhuoIndex = 0;//先清零
                       for(int i = 1; i <= 14- buhuoover_temp; i++) {//每个货架7个位置
-                      vTaskDelay(2000 / portTICK_PERIOD_MS);    
-                      buhuoover++;//记录已经查看的一层商品数量                                    
-                      if(getBuhuoIndex != 0) {
+                        getBuhuoIndex = 0;//先清零
+                        DX_dist = 0;//先清零
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);    
+                        if(abs(DX_dist) < 50) {  
+                          GotoPose(DX_dist*DX_PULSE, 0, 0, true, false);
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        }
+                        buhuoover++;//记录已经查看的一层商品数量                                    
+                        if(getBuhuoIndex != 0) {
                         Serial.println("get buhuo"+String(getBuhuoIndex));
                         buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
                         //抓取动作
@@ -273,18 +288,20 @@ void Task_MainStateMachine(void *pvParameters) {
                   AdjustPose();
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
-                  GotoHeight(630);
+                  GotoHeight(640);
                   vTaskDelay(4000 / portTICK_PERIOD_MS);
                   GotoPose(180, 0, 0 , true, false);
+                  GotoHeight(600);
                   ledcWrite( 3, angleToDuty(120));//夹爪半开
                   vTaskDelay(500 / portTICK_PERIOD_MS);
                   GotoPose(-180, 0, 0 , true, false);
                   ledcWrite( 3, angleToDuty(0));//夹爪大开  
                 } else{
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
-                  GotoHeight(630);
+                  GotoHeight(640);
                   vTaskDelay(4000 / portTICK_PERIOD_MS);
                   GotoPose(180, 0, 0 , true, false);
+                  GotoHeight(600);
                   ledcWrite( 3, angleToDuty(120));//夹爪半开
                   vTaskDelay(500 / portTICK_PERIOD_MS);
                   GotoPose(-180, 0, 0 , true, false);
@@ -405,6 +422,7 @@ void Task_MainStateMachine(void *pvParameters) {
                     //倒料
                     Serial.println("dump");
                     GotoHeight(300);
+                    GotoPose(0, -200, 0 , true, false);
                     ledcWrite( 4, angleToDuty(200));
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     ledcWrite( 5, angleToDuty(90));
@@ -451,9 +469,10 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                 rxBuffer[rxIdx] = '\0';
                 if (rxIdx > 0) {
                     // 处理指令
-                    if (strstr(rxBuffer, "realy") != 0) {
+                    if (strstr(rxBuffer, "ready") != 0) {
                       // 视觉初始化完成逻辑
-                        Serial.println("realy");      
+                        Serial.println("ready");      
+                        ready = true;
                     } else if (strcmp(rxBuffer, "orderget") == 0) {
                        // 确认提货订单商品
                         isOrderReceived = true;
@@ -482,7 +501,15 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                         // 识别到顾客
                         isCustomer = true;
                         Serial.println("true");
-                    } 
+                    } else if (strstr(rxBuffer, "[") != NULL && strstr(rxBuffer, "]") != NULL) {
+                        // 解析[dx]格式的命令
+                        int dx_value;
+                        if (sscanf(rxBuffer, "[%d]", &dx_value) == 1) {
+                            DX_dist = dx_value;
+                            //Serial.print("DX_dist set to: ");
+                            Serial.println(DX_dist);
+                        }
+                    }
                     rxIdx = 0;
                 }
             } else if (rxIdx < 63) {

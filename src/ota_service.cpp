@@ -33,7 +33,7 @@ static void ota_task(void *pvParameters) {
     // 4. 任务循环：处理 OTA 请求
     for (;;) {
         ArduinoOTA.handle();
-        vTaskDelay(pdMS_TO_TICKS(8)); // 给其他任务留出时间
+        vTaskDelay(pdMS_TO_TICKS(5)); // 给其他任务留出时间
     }
 }
 
@@ -50,6 +50,6 @@ void init_ota_service(const char* ssid, const char* password, const char* hostna
     Serial.println("\nWiFi Connected.");
     Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
 
-    // 创建 OTA 异步任务 (分配 4KB 堆栈，优先级设为 1)
-    xTaskCreate(ota_task, "OTA_Task", 16384, (void*)hostname, 1, NULL);
+    // 创建 OTA 异步任务 (分配 16KB 堆栈，优先级设为 1)
+    xTaskCreate(ota_task, "OTA_Task", 16384, (void*)hostname, 6, NULL);
 }
