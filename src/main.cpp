@@ -122,7 +122,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 break;
 
             case STATE_READ_ORDER:
-                ledcWrite( 1, angleToDuty(20));//图像大臂完全抬起
+                ledcWrite( 1, angleToDuty(30));//图像大臂完全抬起
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("taiqi");
                 GotoPose(1100, 0, 0, true, false);
@@ -138,13 +138,10 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
                 GotoPose(880, 0, 0 , true, false);
                 ledcWrite( 1, angleToDuty(250));//图像大臂放下
+                Serial.println("[2]");//开启上位机的yolo(补货)功能
                 GotoPose(0, 650, 0 , true, false);//开始采集
                 GotoHeight(500);
-
-                Serial.println("[2]");//开启上位机的yolo(补货)功能
-
                 AdjustPose();
-                Serial.println("point3");
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
                 ledcWrite( 2, angleToDuty(60));//夹臂完全打开
                 vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -194,15 +191,13 @@ void Task_MainStateMachine(void *pvParameters) {
                 getBuhuoIndex = 0;//先清零
 
                 if(buhuoover <= 6) {//货架1 的补货未完成
-
-
                   buhuoover++;
                   buhuoover_temp = buhuoover;
                   getBuhuoIndex = 0;//先清零
                   for(int i = 1; i <= 7- buhuoover_temp ; i++) {//每个货架7个位置
                       getBuhuoIndex = 0;//先清零
-                      vTaskDelay(2000 / portTICK_PERIOD_MS);
-                        buhuoover++;                                        
+                      vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        buhuoover++; 
                       if(getBuhuoIndex != 0) {
                         Serial.println("get buhuo"+String(getBuhuoIndex));
                         buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
@@ -275,6 +270,8 @@ void Task_MainStateMachine(void *pvParameters) {
                 if(buhuo[buhuoNOW][2] != currentPose.theta) {
                   GotoPose(1600, 1300, buhuo[buhuoNOW][2], false, false);//先去场地中央转弯
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  AdjustPose();
+                  vTaskDelay(1000 / portTICK_PERIOD_MS);
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
                   GotoHeight(630);
                   vTaskDelay(4000 / portTICK_PERIOD_MS);
@@ -296,7 +293,6 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
                 //放置物品
 
-
                 //如果所有商品都完成补货，则前往第二层寻找清单物品，否则继续补货
                 if(replenishDone == 4) {
                     currentState = STATE_GO_SHOPPING;
@@ -312,7 +308,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 // 上位机识别->收到"get0"->执行抓取动作
 
                 Serial.println("go to tihuo");
-                Serial.println("[3]");//开启上位机的提货（yolo）功能
+                //Serial.println("[3]");//开启上位机的提货（yolo）功能
 
                 GotoHeight(300);
 
@@ -398,15 +394,17 @@ void Task_MainStateMachine(void *pvParameters) {
                 // 前往提货区，识别头像匹配目标顾客 
                 Serial.println("[1]");//上位机交付功能
                 GotoHeight(630);
-                GotoPose(880, 2000, 90 , false, false);
+                GotoPose(1150, 2100, 90 , false, false);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 AdjustPose();
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 GotoPose(200, 0, 0 , true, false);
                 for(int i = 0; i < 4; i++) {//4个顾客
-                  vTaskDelay(1000 / portTICK_PERIOD_MS);//等待1秒，确保上位机识别完成
+                  vTaskDelay(3000 / portTICK_PERIOD_MS);//等待1秒，确保上位机识别完成
                   if(isCustomer) {
                     //倒料
+                    Serial.println("dump");
+                    GotoHeight(300);
                     ledcWrite( 4, angleToDuty(200));
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     ledcWrite( 5, angleToDuty(90));
@@ -421,6 +419,8 @@ void Task_MainStateMachine(void *pvParameters) {
                 // 必须在8分钟内完全进入终点区
                 ledcWrite( 3, angleToDuty(180));
                 GotoHeight(500);
+                ledcWrite( 4, angleToDuty(0));
+                ledcWrite( 5, angleToDuty(240));
                 GotoPose(-200, 0, -90 , true, false);
                 vTaskDelay(4000 / portTICK_PERIOD_MS);
                 ledcWrite( 2, angleToDuty(300));
