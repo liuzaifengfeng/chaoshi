@@ -36,7 +36,7 @@ CRGB leds[NUM_LEDS];
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
 //RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
 bool isdebug = false;//是否调试模式
-bool ready = true;//是否准备好运行
+bool ready = false;//是否准备好运行
 int DX_dist = 0;//补货/提货的视觉X轴偏差
 
 // 机器人舵机角度结构体
@@ -97,6 +97,7 @@ void Task_MainStateMachine(void *pvParameters) {
     int buhuoNOW = 0;//当前爪子上面的补货商品索引
     int buhuoover = 0;//已经查看的一层商品数量
     int buhuoover_temp = 0;//查看的一层商品数量,临时赋给for循环
+    int start_time = 0;//开始时间，用于计算是否超时
 
     int caowei[2][3][7] = { //货架号，层号，槽位号
     { // 货架0
@@ -113,9 +114,10 @@ void Task_MainStateMachine(void *pvParameters) {
 
     RobotState currentState = STATE_INIT_WAIT;
     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    while(!ready);{
+    while(!ready){
     vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+    start_time = millis();
     Serial.println("start"); 
     while (1) {
         switch (currentState) {
@@ -127,7 +129,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 break;
 
             case STATE_READ_ORDER:
-                ledcWrite( 1, angleToDuty(30));//图像大臂完全抬起
+                ledcWrite( 1, angleToDuty(40));//图像大臂完全抬起
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("taiqi");
                 GotoPose(1100, 0, 0, true, false);
@@ -203,13 +205,13 @@ void Task_MainStateMachine(void *pvParameters) {
                       DX_dist = 0;//先清零
                       vTaskDelay(3000 / portTICK_PERIOD_MS);
                         buhuoover++; 
-                      if(abs(DX_dist) < 50) {  
+                      if(abs(DX_dist) > 50) {  
                         GotoPose(DX_dist*DX_PULSE, 0, 0, true, false);
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                       }
                       if(getBuhuoIndex != 0) {
                         Serial.println("get buhuo"+String(getBuhuoIndex));
-                        buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
+                        buhuoNOW = getBuhuoIndex-1;//记录当前爪子上面的补货商品索引
                         //抓取动作
                         ledcWrite( 3, angleToDuty(120));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -238,14 +240,14 @@ void Task_MainStateMachine(void *pvParameters) {
                         getBuhuoIndex = 0;//先清零
                         DX_dist = 0;//先清零
                         vTaskDelay(3000 / portTICK_PERIOD_MS);    
-                        if(abs(DX_dist) < 50) {  
+                        if(abs(DX_dist) > 50) {  
                           GotoPose(DX_dist*DX_PULSE, 0, 0, true, false);
                           vTaskDelay(1000 / portTICK_PERIOD_MS);
                         }
                         buhuoover++;//记录已经查看的一层商品数量                                    
                         if(getBuhuoIndex != 0) {
                         Serial.println("get buhuo"+String(getBuhuoIndex));
-                        buhuoNOW = getBuhuoIndex;//记录当前爪子上面的补货商品索引
+                        buhuoNOW = getBuhuoIndex-1;//记录当前爪子上面的补货商品索引
                         //抓取动作
                         ledcWrite( 3, angleToDuty(120));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -296,6 +298,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   vTaskDelay(500 / portTICK_PERIOD_MS);
                   GotoPose(-180, 0, 0 , true, false);
                   ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                  GotoHeight(0);
                 } else{
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
                   GotoHeight(640);
@@ -372,6 +375,7 @@ void Task_MainStateMachine(void *pvParameters) {
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
                     //前往第一个货架提货
+                    
                       for(int i = 1; i <= 7; i++) {//每个货架7个位置
                       vTaskDelay(2000 / portTICK_PERIOD_MS);                                     
                       if(isinorder != 0) {
@@ -415,14 +419,13 @@ void Task_MainStateMachine(void *pvParameters) {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 AdjustPose();
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(200, 0, 0 , true, false);
+                GotoPose(200, 200, 0 , true, false);
                 for(int i = 0; i < 4; i++) {//4个顾客
                   vTaskDelay(3000 / portTICK_PERIOD_MS);//等待1秒，确保上位机识别完成
                   if(isCustomer) {
                     //倒料
                     Serial.println("dump");
-                    GotoHeight(300);
-                    GotoPose(0, -200, 0 , true, false);
+                    GotoPose(0, -100, 0 , true, false);
                     ledcWrite( 4, angleToDuty(200));
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     ledcWrite( 5, angleToDuty(90));
@@ -446,14 +449,17 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoHeight(0);
                 GotoPose(0, 0, -90 , true, false);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(500, 0, 0 , true, false);
-
-
-                //GotoPose(0, 0, 0 , false, false);//点十三，终点
+                GotoPose(2300, 2200, 0 , false, false);
+                AdjustPose();
+                GotoPose(3000, 2200, 0 , false, false);
                 vTaskDelete(NULL); 
                 break;
         }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        if(millis() - start_time > 450000) {//8分钟超时,预留30秒
+          Serial.println("timeout");
+          currentState = STATE_FINISH_HOME;
+        }
     }
 }
 
@@ -479,19 +485,19 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                         Serial.println("orderget");
                     } else if (strcmp(rxBuffer, "get1") == 0) {
                         // 识别到锐澳
-                        getBuhuoIndex = 0;
+                        getBuhuoIndex = 1;
                         Serial.println("get1");
                     } else if (strcmp(rxBuffer, "get2") == 0) {
                         // 识别到百事
-                        getBuhuoIndex = 1;
+                        getBuhuoIndex = 2;
                         Serial.println("get2");
                     } else if (strcmp(rxBuffer, "get3") == 0) {
                         // 识别到旺仔
-                        getBuhuoIndex = 2;
+                        getBuhuoIndex = 3;
                         Serial.println("get3");
                     } else if (strcmp(rxBuffer, "get4") == 0) {
                         // 识别到维他奶
-                        getBuhuoIndex = 3;
+                        getBuhuoIndex = 4;
                         Serial.println("get4");
                     } else if (strcmp(rxBuffer, "get0") == 0) {
                         // 识别到提货商品

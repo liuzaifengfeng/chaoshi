@@ -149,7 +149,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 1, speed, 50, x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x)));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(x)));
         } else if(x < 0) {
             Emm_V5_Pos_Control( 1, 1, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -160,7 +160,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 0, speed, 50, -x * X_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(x)));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(x)));
         }
         
         if(y > 0) {
@@ -173,7 +173,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 1, speed, 50, y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y)));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(y)));
         } else if(y < 0) {
             Emm_V5_Pos_Control( 1, 1, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -184,7 +184,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 0, speed, 50, -y * Y_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(1000+ 5*abs(y)));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(y)));
         }
 
        } else if(theta != 0) {//旋转移动
@@ -198,7 +198,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 0, speed, 50, theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta)));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(theta)));
         } else if(theta <0){
             Emm_V5_Pos_Control( 1, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -209,7 +209,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             Emm_V5_Pos_Control( 4, 1, speed, 50, -theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
             Emm_V5_Synchronous_motion(0);
-            vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta)));
+            vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(theta)));
         }
        }
 
@@ -253,7 +253,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             }
             if(currentPose.theta - theta != 0){
                 GotoPose(0, 0, theta - currentPose.theta, true, false);
-                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+                vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(theta-currentPose.theta)));
             }
 
         } else if(currentPose.theta == 90){
@@ -267,7 +267,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             }
             if(currentPose.theta - theta != 0){
                 GotoPose(0, 0, theta - currentPose.theta, true, false);
-                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+                vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(theta-currentPose.theta)));
             }
 
         } else if(currentPose.theta == 180){
@@ -281,7 +281,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             }
             if(currentPose.theta - theta != 0){
                 GotoPose(0, 0, theta - currentPose.theta,  true, false);
-                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+                vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(theta-currentPose.theta)));
             }
 
         } else if(currentPose.theta == 270){
@@ -295,7 +295,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             }
             if(currentPose.theta - theta != 0){
                 GotoPose(0, 0, theta - currentPose.theta, true, false);
-                vTaskDelay(pdMS_TO_TICKS(1000+ 8*abs(theta-currentPose.theta)));
+                vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(theta-currentPose.theta)));
             }
         }
         //更新当前位置
@@ -433,6 +433,8 @@ bool AdjustPose() {
         float angleThreshold = 0.5f; // 0.5度
         int maxRetries = 1; // 最大重试次数
         float adjustRatio = 1.0f;  // 矫正系数比例，用于调整微调系数
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
     
     while (retryCount < maxRetries) {
         // 1. 获取实际位置
