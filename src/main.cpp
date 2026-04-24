@@ -95,8 +95,10 @@ enum RobotState {
 // 主状态机任务函数（正常运行模式）
 void Task_MainStateMachine(void *pvParameters) {
     int buhuoNOW = 0;//当前爪子上面的补货商品索引
-    int buhuoover = 0;//已经查看的一层商品数量
-    int buhuoover_temp = 0;//查看的一层商品数量,临时赋给for循环
+    RobotPose lastpose = {0, 0, 0};
+    bool isReplenishDone_1 = false;//是否在货架1补货完成
+    bool isReplenishDone_2 = false;//是否在货架2补货完成
+
     int start_time = 0;//开始时间，用于计算是否超时
 
     int caowei[2][3][7] = { //货架号，层号，槽位号
@@ -160,6 +162,8 @@ void Task_MainStateMachine(void *pvParameters) {
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
                 GotoHeight(0);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
+
+                lastpose = currentPose;
                 
                currentState = STATE_PRE_REPLENISH;
                break;
@@ -170,52 +174,49 @@ void Task_MainStateMachine(void *pvParameters) {
                 // 从货架1和2的第一层抓取待补货物品：锐澳、百事、旺仔、维他奶 
                 // 遍历货架1/2 第一层
 
-                Serial.println("into replenish" + String(buhuoover));
+                Serial.println("into replenish" + String(lastpose.x) + String(lastpose.y) + String(lastpose.theta));
 
                 GotoHeight(0);
                 vTaskDelay(3000 / portTICK_PERIOD_MS);
 
-                if(buhuoover <= 6) {//货架1 的补货未完成
+                if(!isReplenishDone_1) {//货架1 的补货未完成
                   if(currentPose.theta == 0){
-                    Serial.println("go to "+String(buhuoover));
-                    GotoPose(2230, 1030+buhuoover*128.6, 0 , false, false);
+                    Serial.println("go to one"+String(lastpose.y));
+                    GotoPose(2230, lastpose.y, 0 , false, false);
                   } else{//机器人与补货槽位货架不在同侧，先移动旋转到补货槽位货架
                     GotoPose(1600, 1300, 0 , false, false);
                     vTaskDelay(3000 / portTICK_PERIOD_MS);
                     AdjustPose();
-                    GotoPose(2230, 1030+buhuoover*128.6, 0 , false, false);
+                    GotoPose(2230, lastpose.y, 0 , false, false);
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                   }
-                } else {//货架1 的补货已完成，前往货架2补货
-                    Serial.println("go to "+String(buhuoover));
+                } else if(!isReplenishDone_2) {//货架1 的补货已完成，前往货架2补货
+                    Serial.println("go to two"+String(lastpose.y));
                   if(currentPose.theta == 180){
-                    GotoPose(880, 1630-(buhuoover-7)*128.6, 180 , false, false);
+                    GotoPose(880, 1630, 180 , false, false);
                   } else {//机器人与补货槽位货架不在同侧，先移动旋转到补货槽位货架
                     GotoPose(1600, 1300, 180 , false, false);
                     vTaskDelay(3000 / portTICK_PERIOD_MS);
                     AdjustPose();
-                    GotoPose(880, 1630-(buhuoover-7)*128.6, 180 , false, false); 
+                    GotoPose(880, 1630, 180 , false, false); 
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                   }
+                } else {//补全部完成
+                  currentState = STATE_GO_SHOPPING;
+                  Serial.println("buhuodone");
+                  break;
                 }
 
-                //开始遍历
-                getBuhuoIndex = 0;//先清零
 
-                if(buhuoover <= 6) {//货架1 的补货未完成
-                  buhuoover_temp = buhuoover;
-                  buhuoover++;
-                  getBuhuoIndex = 0;//先清零
-                  for(int i = 1; i <= 7- buhuoover_temp ; i++) {//每个货架7个位置
-                      getBuhuoIndex = 0;//先清零
-                      DX_dist = 0;//先清零
-                      vTaskDelay(3000 / portTICK_PERIOD_MS);
-                        buhuoover++; 
-                      if(abs(DX_dist) > 50) {  
-                        GotoPose(DX_dist*DX_PULSE, 0, 0, true, false);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
-                      }
-                      if(getBuhuoIndex != 0) {
+                getBuhuoIndex = 0;//先清零;
+
+                if(!isReplenishDone_1) {//货架1 的补货未完成
+                  movepose(1, 10,0);
+                  while(avg_distances[0] < 1500){
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    if(getBuhuoIndex != 0) {
+                        movepose(0, 0, 1);
+                        lastpose = currentPose;
                         Serial.println("get buhuo"+String(getBuhuoIndex));
                         buhuoNOW = getBuhuoIndex-1;//记录当前爪子上面的补货商品索引
                         //抓取动作
@@ -230,28 +231,18 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(-100, 0, 0 , true, false);
                         currentState = STATE_DO_REPLENISH;
                         break;
-                      } else { 
-                        if(i != 7){
-                         GotoPose(0, 128.6, 0 , true, false);//步进到下一个位置
-                        }
-                      }
+                    }
                   }
-                  break;//直接退出重进
+                  movepose(0, 0, 1);
+                  isReplenishDone_1 = true;
+                  break;//查看完毕，前往货架2补货
 
-                } else if(buhuoover <= 13) {//货架1 的补货已完成，前往货架2补货
-                      buhuoover_temp = buhuoover;
-                      buhuoover++;
-                      getBuhuoIndex = 0;//先清零
-                      for(int i = 1; i <= 14- buhuoover_temp; i++) {//每个货架7个位置
-                        getBuhuoIndex = 0;//先清零
-                        DX_dist = 0;//先清零
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);    
-                        if(abs(DX_dist) > 50) {  
-                          GotoPose(DX_dist*DX_PULSE, 0, 0, true, false);
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
-                        }
-                        buhuoover++;//记录已经查看的一层商品数量                                    
-                        if(getBuhuoIndex != 0) {
+                } else if(!isReplenishDone_2) {//货架1 的补货已完成，前往货架2补货
+                  movepose(1, 10,0);
+                  while(avg_distances[0] < 1500){
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    if(getBuhuoIndex != 0) {
+                        movepose(0, 0, 1);
                         Serial.println("get buhuo"+String(getBuhuoIndex));
                         buhuoNOW = getBuhuoIndex-1;//记录当前爪子上面的补货商品索引
                         //抓取动作
@@ -266,13 +257,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(-100, 0, 0 , true, false);
                         currentState = STATE_DO_REPLENISH;
                         break;
-                      } else { 
-                        if(i != 14){
-                         GotoPose(0, 128.6, 0 , true, false);//步进到下一个位置
-                        }
-                      }  
+                    }
                   }
-                  break;//直接退出重进
+                  movepose(0, 0, 1);
+                  isReplenishDone_2 = true;
+                  break;//查看完毕，前往货架2补货
 
                 } else {//补货全部完成
                   currentState = STATE_GO_SHOPPING;
