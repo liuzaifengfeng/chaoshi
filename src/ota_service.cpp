@@ -3,18 +3,22 @@
 #include <ArduinoOTA.h>
 #include "ota_service.h"
 
-// 内部任务句柄
+static bool otaStarted = false;
+static bool wifiConnected = false;
+static const char* wifi_ssid = nullptr;
+static const char* wifi_password = nullptr;
+static const char* wifi_hostname = nullptr;
+
+static TaskHandle_t xOtaTaskHandle = NULL;
+
 static void ota_task(void *pvParameters) {
     const char* hostname = (const char*)pvParameters;
 
-    // 1. 配置 mDNS
-    if (MDNS.begin(hostname)) {
-        Serial.printf("mDNS responder started: %s.local\n", hostname);
-    }
+    MDNS.begin(hostname);
+    Serial.printf("mDNS responder started: %s.local\n", hostname);
 
-    // 2. 配置 OTA 回调（可选，用于调试）
     ArduinoOTA.setHostname(hostname);
-    
+
     ArduinoOTA.onStart([]() {
         String type = (ArduinoOTA.getCommand() == U_FLASH) ? "sketch" : "filesystem";
         Serial.println("Start updating " + type);
@@ -27,29 +31,59 @@ static void ota_task(void *pvParameters) {
         Serial.printf("Error[%u]: ", error);
     });
 
-    // 3. 启动 OTA
     ArduinoOTA.begin();
+    Serial.println("OTA service started");
 
-    // 4. 任务循环：处理 OTA 请求
     for (;;) {
         ArduinoOTA.handle();
-        vTaskDelay(pdMS_TO_TICKS(5)); // 给其他任务留出时间
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+}
+
+static void wifi_task(void *pvParameters) {
+    (void)pvParameters;
+
+    for (;;) {
+        if (WiFi.status() == WL_CONNECTED) {
+            if (!wifiConnected) {
+                wifiConnected = true;
+                Serial.printf("WiFi Connected. IP: %s\n", WiFi.localIP().toString().c_str());
+
+                if (!otaStarted && wifi_hostname != nullptr) {
+                    otaStarted = true;
+                    xTaskCreate(ota_task, "OTA_Task", 16384, (void*)wifi_hostname, 6, &xOtaTaskHandle);
+                }
+            }
+        } else {
+            if (wifiConnected) {
+                wifiConnected = false;
+                Serial.println("WiFi Disconnected");
+
+                if (xOtaTaskHandle != NULL) {
+                    vTaskDelete(xOtaTaskHandle);
+                    xOtaTaskHandle = NULL;
+                }
+                otaStarted = false;
+            }
+
+            if (wifi_ssid != nullptr && wifi_password != nullptr) {
+                if (WiFi.status() != WL_CONNECTED) {
+                    WiFi.begin(wifi_ssid, wifi_password);
+                }
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
 void init_ota_service(const char* ssid, const char* password, const char* hostname) {
-    // 连接 WiFi
+    wifi_ssid = ssid;
+    wifi_password = password;
+    wifi_hostname = hostname;
+
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
-    
-    Serial.print("Connecting to WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nWiFi Connected.");
-    Serial.printf("IP address: %s\n", WiFi.localIP().toString().c_str());
+    Serial.println("WiFi connection started in background");
 
-    // 创建 OTA 异步任务 (分配 16KB 堆栈，优先级设为 1)
-    xTaskCreate(ota_task, "OTA_Task", 16384, (void*)hostname, 6, NULL);
+    xTaskCreate(wifi_task, "WiFi_Task", 8192, NULL, 3, NULL);
 }
