@@ -359,7 +359,7 @@ void Emm_V5_Receive_Data(uint8_t *rxCmd, uint8_t *rxCount)
   lTime = cTime = millis();
 
   // 开始接收数据
-  while(1)
+  for(int j = 0; j < 100; j++)
   {
     if(Serial1.available() > 0)            // 串口有数据进来
     {
@@ -369,17 +369,21 @@ void Emm_V5_Receive_Data(uint8_t *rxCmd, uint8_t *rxCount)
 
         lTime = millis();                 // 更新上一时刻的时间
       }
+      //break; 
     }
     else                                  // 串口有没有数据
     {
       cTime = millis();                   // 获取当前时刻的时间
 
-      if((int)(cTime - lTime) > 100)      // 100毫秒内串口没有数据进来，就判定一帧数据接收结束
+      if((int)(cTime - lTime) > 10)      // 10毫秒内串口没有数据进来，就判定一帧数据接收结束
       {
         *rxCount = i;                     // 数据长度
         
         break;                            // 退出while(1)循环
       }
     }
-  }
+    vTaskDelay(pdMS_TO_TICKS(1));
+   }
+   Serial.println("Receive Data : " + String(*rxCount) + " bytes");
+
 }

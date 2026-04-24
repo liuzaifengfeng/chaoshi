@@ -43,6 +43,7 @@ static void ota_task(void *pvParameters) {
 static void wifi_task(void *pvParameters) {
     (void)pvParameters;
 
+    WiFi.mode(WIFI_STA);
     for (;;) {
         if (WiFi.status() == WL_CONNECTED) {
             if (!wifiConnected) {
@@ -68,11 +69,12 @@ static void wifi_task(void *pvParameters) {
 
             if (wifi_ssid != nullptr && wifi_password != nullptr) {
                 if (WiFi.status() != WL_CONNECTED) {
+                    Serial.println("try connecting to WiFi... " + String(wifi_ssid) + " " + String(wifi_password));
                     WiFi.begin(wifi_ssid, wifi_password);
                 }
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(10000));
     }
 }
 
@@ -81,8 +83,9 @@ void init_ota_service(const char* ssid, const char* password, const char* hostna
     wifi_password = password;
     wifi_hostname = hostname;
 
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, password);
+    //WiFi.mode(WIFI_STA);
+    //WiFi.begin(ssid, password);
+    //vTaskDelay(pdMS_TO_TICKS(1000));
     Serial.println("WiFi connection started in background");
 
     xTaskCreate(wifi_task, "WiFi_Task", 8192, NULL, 3, NULL);

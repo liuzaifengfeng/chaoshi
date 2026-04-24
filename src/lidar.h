@@ -69,6 +69,8 @@ RobotPose GETRPose(int dists[4]);// 计算机器人坐标
 void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust);// 移动机器人到指定位置
 bool AdjustPose();// 位置微调函数
 void GotoHeight(float height);// 移动机器人大臂到指定高度
+void movepose(bool Y, float speed, bool stop);// 移动机器人到指定位置，单位：mm/s
+
 
 
 #endif // LIDAR_H

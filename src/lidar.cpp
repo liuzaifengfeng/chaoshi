@@ -6,7 +6,7 @@
 TaskHandle_t TaskLidarHandle = NULL;
 
 // 存储4个通道的平均距离（全局变量，用于GETdist命令）
-int avg_distances[4] = {0, 0, 0, 0};
+int avg_distances[4] = {0, 0, 0, 0};//4个通道的平均距离（mm）
 
 // --------------------------------------------------------
 // 任务：雷达数据轮询与解析 (运行在 Core 0)
@@ -122,6 +122,73 @@ void GotoHeight(float height) {
     }
     Emm_V5_Pos_Control( 5, 0, speed, 50, height * HEIGHT_PULSE, 1, 0);
     vTaskDelay(pdMS_TO_TICKS(100));
+}
+
+/**
+* @brief 移动机器人到指定位置
+* @param Y y轴方向，0为负向移动，1为正向移动。
+* @param speed 移动速度，单位：mm/s
+* @param stop 开始移动0/停止移动1
+* @return void
+*/
+void movepose(bool Y, float speed, bool stop) {
+
+    static int NOW_position = 0;//激光当前位置（角度）
+    static int last_position = 0;//激光上次位置（角度）
+
+    for(int i = 0; i < 3; i++) {
+        if(avg_distances[i] > 0) {
+            NOW_position = avg_distances[i];
+            break;
+        }
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
+
+
+    if(!stop) {//开始移动
+        if(Y) {
+            Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Vel_Control( 2, 0, speed, 50, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Vel_Control( 3, 1, speed, 50, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Vel_Control( 4, 1, speed, 50, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+        } else {
+            Emm_V5_Vel_Control( 1, 1, speed, 50, 0);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Vel_Control( 2, 1, speed, 50, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Vel_Control( 3, 0, speed, 50, 1);    
+            vTaskDelay(pdMS_TO_TICKS(10));
+            Emm_V5_Vel_Control( 4, 0, speed, 50, 1);
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Synchronous_motion(0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        last_position = NOW_position;
+
+    } else {//停止移动
+        Emm_V5_Stop_Now(0, 0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        // 同步到全局理想位置
+        // 根据当前机器人角度更新坐标
+        float distance_mm = NOW_position - last_position;
+        if (currentPose.theta == 0) {
+            currentPose.y += distance_mm;
+        } else if (currentPose.theta == 90) {
+            currentPose.x += distance_mm;
+        } else if (currentPose.theta == 180) {
+            currentPose.y -= distance_mm;
+        } else if (currentPose.theta == 270) {
+            currentPose.x -= distance_mm;
+        }
+        // 打印调试信息
+        Serial.printf("Move completed: distance = %.2f mm, new position: (%.2f, %.2f, %.2f)\n", 
+                        distance_mm, currentPose.x, currentPose.y, currentPose.theta);
+    }
 }
 
 /**

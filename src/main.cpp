@@ -48,7 +48,7 @@ struct RobotAngle {
     float angle4;//通道4
 };
 
-//位置坐标-电机脉冲转换系数（mm-脉冲）
+//位置坐标-电机脉冲转换系数（mm*pulse = 走对应距离对应脉冲数）
  float X_PULSE = 10.5f;
  float Y_PULSE = 11.4f;
  float THETA_PULSE = 84.0f;
@@ -592,6 +592,18 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.print(" mm, CH3=");
         Serial.println(avg_distances[3]);
 
+      }else if(strcmp(cmd.cmd, "movepose") == 0){
+        // 执行movepose命令,移动机器人到指定位置
+        Serial.print("Executing movepose: Y=");
+        Serial.print(cmd.param1);
+        Serial.print(", speed=");
+        Serial.print(cmd.param2);
+        Serial.print(", stop=");
+        Serial.println(cmd.param3);
+        // 使用movepose函数移动机器人到指定位置
+        movepose(cmd.param1, cmd.param2, cmd.param3);
+
+
       } else if(strcmp(cmd.cmd, "EMMpos") == 0){
         // 执行EMMpos命令,设置电机位置
         Serial.print("Executing EMMpos: addr=");
@@ -628,6 +640,7 @@ void Task_Debug_Mode(void *pvParameters){
         Serial.println("GOTOposetf: x y theta");
         Serial.println("GETCpose/GETRpose");
         Serial.println("GETdist");
+        Serial.println("movepose Y speed stop");
         Serial.println("AdjustPose");
         Serial.println("EMMpos addr dir clk");
         Serial.println("GOTOHeight height");

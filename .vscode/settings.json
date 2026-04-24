@@ -39,7 +39,13 @@
         "vector": "cpp",
         "string": "cpp",
         "memory_resource": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "array": "cpp",
+        "condition_variable": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "optional": "cpp",
+        "thread": "cpp"
     },
     "stm32-for-vscode.openOCDPath": false,
     "stm32-for-vscode.armToolchainPath": false
