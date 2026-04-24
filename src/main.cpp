@@ -18,7 +18,7 @@
 #define LED_PIN 48
 #define NUM_LEDS 1
 #define OTA_HOSTNAME "espchaoshi"
-#define VERSION "1.2.0"
+#define VERSION "1.3.0"
 
 //四个待补货商品位置（二维数组），{ x坐标, y坐标, theta角度, 是否完成}
 float buhuo[4][4] = {
@@ -29,7 +29,7 @@ float buhuo[4][4] = {
 };
 int getBuhuoIndex = 0;//当前需要补货的商品索引
 
-//// LED数组
+// LED数组
 CRGB leds[NUM_LEDS];
 
 //全局变量
@@ -121,14 +121,18 @@ void Task_MainStateMachine(void *pvParameters) {
     Serial.println("start"); 
     while (1) {
         switch (currentState) {
-            
+/**************************************************************/
+//               启动后的10秒强制静止阶段 
+/**************************************************************/
             case STATE_INIT_WAIT:
                 // 1. 强制静止10秒
                 vTaskDelay(10000 / portTICK_PERIOD_MS);//点一
                 currentState = STATE_READ_ORDER;
                 break;
-
-            case STATE_READ_ORDER:
+/**************************************************************/
+//               前往小方桌识别购物需求 
+/**************************************************************/
+            case STATE_READ_ORDER://前往小方桌识别购物需求
                 ledcWrite( 1, angleToDuty(40));//图像大臂完全抬起
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("taiqi");
@@ -159,7 +163,9 @@ void Task_MainStateMachine(void *pvParameters) {
                 
                currentState = STATE_PRE_REPLENISH;
                break;
-
+/**************************************************************/
+//               前往货架1/2的第一层抓取补货物品
+/**************************************************************/
             case STATE_PRE_REPLENISH://前往货架1/2的第一层抓取补货物品
                 // 从货架1和2的第一层抓取待补货物品：锐澳、百事、旺仔、维他奶 
                 // 遍历货架1/2 第一层
@@ -275,7 +281,9 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
 
                 break;//正常不会执行到这行代码
-
+/**************************************************************/
+//               执行补货动作
+/**************************************************************/
             case STATE_DO_REPLENISH://执行补货动作
                 // 将抓到的补货物品放入第三层标签标记的指定位置 
                 // 执行放置动作 
@@ -322,8 +330,10 @@ void Task_MainStateMachine(void *pvParameters) {
                     currentState = STATE_PRE_REPLENISH;//继续补货，前往补货槽位
                 }
                 break;
-
-            case STATE_GO_SHOPPING:
+/**************************************************************/
+//               前往第二层寻找6个清单物品
+/**************************************************************/
+            case STATE_GO_SHOPPING://前往第二层寻找6个清单物品
                 // 前往第二层寻找6个清单物品
                 // 上位机识别->收到"get0"->执行抓取动作
 
@@ -410,9 +420,10 @@ void Task_MainStateMachine(void *pvParameters) {
                 Serial.println("finish shopping: " + String(replenishDone));
                 currentState = STATE_DELIVERING;
                 break;
-    
-            case STATE_DELIVERING:
-                // 前往提货区，识别头像匹配目标顾客 
+/**************************************************************/
+//               执行交付动作
+/**************************************************************/
+            case STATE_DELIVERING:// 前往提货区，识别头像匹配目标顾客 
                 Serial.println("[1]");//上位机交付功能
                 GotoHeight(630);
                 GotoPose(1150, 2100, 90 , false, false);
@@ -435,9 +446,10 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
                 currentState = STATE_FINISH_HOME;
                 break;
-
-            case STATE_FINISH_HOME:
-                // 必须在8分钟内完全进入终点区
+/**************************************************************/
+//                  执行返回终点区动作
+/**************************************************************/
+            case STATE_FINISH_HOME://须在8分钟内完全进入终点区
                 ledcWrite( 3, angleToDuty(180));
                 GotoHeight(500);
                 ledcWrite( 4, angleToDuty(0));
@@ -707,10 +719,10 @@ void setup() {
   unsigned long startTime = millis();
   bool bootKeyPressed = false;
   
-  while (millis() - startTime < 10000) {  // 延时10秒
+  while (millis() - startTime < 5000) {  // 延时5秒
     if (digitalRead(MODE_key) == LOW) {  // 检测按键是否按下（低电平）
       bootKeyPressed = true;
-      //Serial.println("MODE_key pressed, entering debug mode...");
+      Serial.println("MODE_key pressed, entering debug mode...");
       break;
     }
     vTaskDelay(10 / portTICK_PERIOD_MS);  // 短暂延时，避免占用过多CPU资源

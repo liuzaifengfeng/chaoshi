@@ -134,7 +134,7 @@ void GotoHeight(float height) {
  * @return void
  */
 void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
-    int speed = 70;//移动速度  
+    int speed = 100;//移动速度  
 
     if (isRelative) {//相对坐标
        if(x != 0 || y != 0 ) {//平行移动
