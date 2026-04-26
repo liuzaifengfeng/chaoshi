@@ -92,6 +92,7 @@ enum RobotState {
   int replenishDone = 0;//已补货物品数量
   int deliverDone = 0;//已提货物品数量
   bool isCustomer = false;  //是否识别到顾客
+  bool isDelivered = false;//是否已投递
 
 // 主状态机任务函数（正常运行模式）
 void Task_MainStateMachine(void *pvParameters) {
@@ -139,9 +140,8 @@ void Task_MainStateMachine(void *pvParameters) {
                 ledcWrite( 1, angleToDuty(40));//图像大臂完全抬起
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("taiqi");
-                GotoPose(1100, 0, 0, true, false);
-                vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("[0]");//开启上位机的OCR功能
+                GotoPose(1100, 0, 0, true, false);
                 vTaskDelay(200 / portTICK_PERIOD_MS);
                 for (int i = 0; i < 30; i++) {//30秒超时，未收到到购物需求，则先前往货架1/2的第一层抓取补货物品
                     vTaskDelay(1000 / portTICK_PERIOD_MS); 
@@ -216,7 +216,7 @@ void Task_MainStateMachine(void *pvParameters) {
 
                   movepose(1, 10,0);
                   getBuhuoIndex = 0;//先清零;
-                  while(avg_distances[0] < 1500){
+                  while(avg_distances[0] < 1550){
                     vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(getBuhuoIndex != 0) {
                         movepose(0, 0, 1);
@@ -238,7 +238,7 @@ void Task_MainStateMachine(void *pvParameters) {
                     }
                   }
 
-                  if(avg_distances[0] > 1450){//被动跳出的循环，货架遍历完成
+                  if(avg_distances[0] > 1500){//被动跳出的循环，货架遍历完成
                     movepose(0, 0, 1);
                     isReplenishDone_1 = true;
                      lastpose.y = 1700;
@@ -251,7 +251,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 } else if(!isReplenishDone_2) {//货架1 的补货已完成，前往货架2补货
                   movepose(1, 10,0);
                   getBuhuoIndex = 0;//先清零;
-                  while(avg_distances[0] < 1500){
+                  while(avg_distances[0] < 1550){
                     vTaskDelay(100 / portTICK_PERIOD_MS);
                     if(getBuhuoIndex != 0) {
                         movepose(0, 0, 1);
@@ -273,7 +273,7 @@ void Task_MainStateMachine(void *pvParameters) {
                     }
                   }
                   
-                  if(avg_distances[0] > 1450){//被动跳出的循环，货架遍历完成
+                  if(avg_distances[0] > 1500){//被动跳出的循环，货架遍历完成
                     movepose(0, 0, 1);
                     isReplenishDone_2 = true;
                     break;//全部查看完毕，补货完成
@@ -305,24 +305,30 @@ void Task_MainStateMachine(void *pvParameters) {
                   AdjustPose();
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                  //放置动作
                   GotoHeight(640);
                   vTaskDelay(4000 / portTICK_PERIOD_MS);
                   GotoPose(200, 0, 0 , true, false);
                   GotoHeight(600);
-                  ledcWrite( 3, angleToDuty(120));//夹爪半开
-                  vTaskDelay(800 / portTICK_PERIOD_MS);
+                  ledcWrite( 3, angleToDuty(140));//夹爪半开
+                  vTaskDelay(400 / portTICK_PERIOD_MS);
+                  ledcWrite( 3, angleToDuty(120));
+                  vTaskDelay(400 / portTICK_PERIOD_MS);
                   GotoPose(-200, 0, 0 , true, false);
                   ledcWrite( 3, angleToDuty(0));//夹爪大开  
                   vTaskDelay(500 / portTICK_PERIOD_MS);
                   GotoHeight(0);
                 } else{
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                  //放置动作
                   GotoHeight(640);
                   vTaskDelay(4000 / portTICK_PERIOD_MS);
                   GotoPose(200, 0, 0 , true, false);
                   GotoHeight(600);
-                  ledcWrite( 3, angleToDuty(120));//夹爪半开
-                  vTaskDelay(800 / portTICK_PERIOD_MS);
+                  ledcWrite( 3, angleToDuty(140));//夹爪半开
+                  vTaskDelay(400 / portTICK_PERIOD_MS);
+                  ledcWrite( 3, angleToDuty(120));
+                  vTaskDelay(400 / portTICK_PERIOD_MS);
                   GotoPose(-200, 0, 0 , true, false);
                   ledcWrite( 3, angleToDuty(0));//夹爪大开
                   vTaskDelay(500 / portTICK_PERIOD_MS); 
@@ -361,7 +367,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 //开始货架二遍历
 
                 movepose(1, 10,0);//开始移动
-                while(avg_distances[0] < 1500 && deliverDone < 6){
+                while(avg_distances[0] < 1550 && deliverDone < 6){
                   vTaskDelay(100 / portTICK_PERIOD_MS);
                   if(isinorder != 0 ) {
                       movepose(0, 0, 1);//停下
@@ -406,7 +412,7 @@ void Task_MainStateMachine(void *pvParameters) {
 
                 //开始货架一遍历
                 movepose(1, 10,0);//开始移动
-                while(avg_distances[0] < 1500){
+                while(avg_distances[0] < 1550){
                   vTaskDelay(100 / portTICK_PERIOD_MS);
                   if(isinorder != 0 && deliverDone < 6) {
                       movepose(0, 0, 1);//停下
@@ -421,6 +427,7 @@ void Task_MainStateMachine(void *pvParameters) {
                       vTaskDelay(1000 / portTICK_PERIOD_MS);
                       GotoPose(-130, 0, 0 , true, false);
                       GotoHeight(550);
+                      ledcWrite( 2, angleToDuty(180));
                       vTaskDelay(3000 / portTICK_PERIOD_MS);
                       ledcWrite( 2, angleToDuty(180));
                       vTaskDelay(2000 / portTICK_PERIOD_MS);
@@ -456,7 +463,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 GotoPose(200, 200, 0 , true, false);
                 for(int i = 0; i < 4; i++) {//4个顾客
-                  vTaskDelay(3000 / portTICK_PERIOD_MS);//等待3秒，确保上位机识别完成
+                  vTaskDelay(2000 / portTICK_PERIOD_MS);//等待2秒，确保上位机识别完成
                   if(isCustomer) {
                     //倒料
                     Serial.println("dump");
@@ -470,6 +477,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   //向下个位置移动
                   GotoPose(0, -300, 0 , true, false);
                 }
+                isDelivered = true;
                 currentState = STATE_FINISH_HOME;
                 break;
 /**************************************************************/
@@ -480,21 +488,29 @@ void Task_MainStateMachine(void *pvParameters) {
                 ledcWrite( 3, angleToDuty(180));//闭合
                 GotoHeight(520);
                 ledcWrite( 4, angleToDuty(0));
-                ledcWrite( 5, angleToDuty(240));
-                ledcWrite( 2, angleToDuty(300));//夹臂完全收回
+                ledcWrite( 5, angleToDuty(250));
                 vTaskDelay(3000 / portTICK_PERIOD_MS);
+                ledcWrite( 2, angleToDuty(300));//夹臂完全收回
                 GotoHeight(0);
 
-                GotoPose(0, 0, 0 , false, false);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
-                GotoPose(2300, 2500, 0 , false, false);
-                AdjustPose();
-                GotoPose(200, 500, 0 , true, false);
-                vTaskDelete(NULL); 
-                break;
+                if (isDelivered){//交付完成，正常回家
+                  GotoPose(-200, 0, 0 , true, false);
+                  GotoPose(0, 0, -90 , true, false);
+                  vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  GotoPose(0, 100, 0 , true, false);
+                  GotoPose(2900, 2200, 0 , false, false);
+                  vTaskDelete(NULL); 
+                  break;
+                } else {//交付未完成，强制回家
+                  GotoPose(2400, 2200, 0 , false, false);
+                  vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  GotoPose(500, 0, 0 , true, false);
+                  vTaskDelete(NULL); 
+                  break;
+                }
         }
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        if(millis() - start_time > 450000) {//8分钟超时,预留30秒
+        if(millis() - start_time > 650000) {//8分钟超时,预留30秒.测试阶段，先给650秒（11分钟）时间，确保机器人到达终点区
           Serial.println("timeout");
           currentState = STATE_FINISH_HOME;
         }
@@ -551,7 +567,7 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                         if (sscanf(rxBuffer, "[%d]", &dx_value) == 1) {
                             DX_dist = dx_value;
                             //Serial.print("DX_dist set to: ");
-                            Serial.println(DX_dist);
+                            //Serial.println(DX_dist);
                         }
                     }
                     rxIdx = 0;

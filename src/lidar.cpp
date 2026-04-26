@@ -116,7 +116,7 @@ void TaskLidarProcess(void *pvParameters) {
  * @return void
  */
 void GotoHeight(float height) {
-    int speed = 100;//移动速度  
+    int speed = 80;//移动速度  
     if(height < 0 || height > 640) {
         return;//高度超出范围
     }
