@@ -45,7 +45,10 @@
         "unordered_map": "cpp",
         "unordered_set": "cpp",
         "optional": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "cfloat": "cpp",
+        "iostream": "cpp",
+        "ratio": "cpp"
     },
     "stm32-for-vscode.openOCDPath": false,
     "stm32-for-vscode.armToolchainPath": false
