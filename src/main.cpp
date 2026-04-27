@@ -301,7 +301,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 //如果机器人与补货槽位货架不在同侧，先移动旋转到补货槽位货架
                 if(buhuo[buhuoNOW][2] != currentPose.theta) {
                   GotoPose(1600, 1300, buhuo[buhuoNOW][2], false, false);//先去场地中央转弯
-                  vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  vTaskDelay(2000 / portTICK_PERIOD_MS);
                   AdjustPose();
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
@@ -320,6 +320,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   GotoHeight(0);
                 } else{
                   GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                  vTaskDelay(1000 / portTICK_PERIOD_MS);
                   //放置动作
                   GotoHeight(640);
                   vTaskDelay(4000 / portTICK_PERIOD_MS);
