@@ -22,7 +22,7 @@ void initPWM() {
   ledcAttachPin(PWM4_PIN, 4);
   ledcAttachPin(PWM5_PIN, 5);
 
-  ledcWrite(1,angleToDuty(250) );//图像大臂完全放下，20完全抬起
+  ledcWrite(1,angleToDuty(260) );//图像大臂完全放下，20完全抬起
   ledcWrite(2,angleToDuty(300) );//夹臂完全收回，50完全打开
   ledcWrite(3,angleToDuty(180) );//夹爪闭合，0大打开
   ledcWrite(4,angleToDuty(0) );//料台收回，270伸出

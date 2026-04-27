@@ -116,7 +116,7 @@ void TaskLidarProcess(void *pvParameters) {
  * @return void
  */
 void GotoHeight(float height) {
-    int speed = 80;//移动速度  
+    int speed = 100;//移动速度  
     if(height < 0 || height > 640) {
         return;//高度超出范围
     }
@@ -201,7 +201,7 @@ void movepose(bool Y, float speed, bool stop) {
  * @return void
  */
 void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
-    int speed = 100;//移动速度  
+    int speed = 80;//移动速度  
 
     if (isRelative) {//相对坐标
        if(x != 0 || y != 0 ) {//平行移动
@@ -254,7 +254,8 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
             vTaskDelay(pdMS_TO_TICKS(1000+ 10*abs(y)));
         }
 
-       } else if(theta != 0) {//旋转移动
+       }
+        if(theta != 0) {//旋转移动
         if(theta > 0) {
             Emm_V5_Pos_Control( 1, 0, speed, 50, theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -301,7 +302,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
         currentPose.theta += theta;
         if(currentPose.theta < 0) {
          currentPose.theta += 360;
-        } else if(currentPose.theta > 360) {
+        } else if(currentPose.theta >= 360) {
          currentPose.theta -= 360;
         }
 
@@ -517,6 +518,7 @@ bool AdjustPose() {
         float deltaX = currentPose.x - actualPose.x;
         float deltaY = currentPose.y - actualPose.y;
         float deltaTheta = currentPose.theta - actualPose.theta;
+        if (deltaTheta >= 30 || deltaTheta <= -30) {deltaTheta = 0; deltaX = 0; }//角度偏差超过30度，认为是0度
         
         // 角度归一化到 -180~180 度
         while (deltaTheta > 180) deltaTheta -= 360;
