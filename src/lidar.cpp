@@ -8,105 +8,50 @@ TaskHandle_t TaskLidarHandle = NULL;
 // 存储4个通道的平均距离（全局变量，用于GETdist命令）
 int avg_distances[4] = {0, 0, 0, 0};//4个通道的平均距离（mm）
 
-// --------------------------------------------------------
-// 任务：雷达数据轮询与解析 (运行在 Core 0)
-// --------------------------------------------------------
+/**
+ * @brief 任务：解析由 STM32 汇总上报的雷达数据
+ * 运行在 Core 0，频率保持 20Hz 以上即可（协议发送频率为 20Hz）
+ */
 void TaskLidarProcess(void *pvParameters) {
-    uint8_t rx_buffer[FRAME_LENGTH];
-
-    // 用于精准控制 2Hz (500ms) 的任务周期
-    TickType_t xLastWakeTime = xTaskGetTickCount();
-    const TickType_t xFrequency = pdMS_TO_TICKS(500); 
-
+    uint8_t buffer[11]; // 汇总协议长度为 11 字节
+    
     for (;;) {
-        // 遍历 0 到 3 号通道
-        for (int ch = 0; ch < 4; ch++) {
-            
-            // 1. 控制 CD4052 切换通道 (A为低位，B为高位)
-            digitalWrite(CD4052_A, (ch & 0x01) ? HIGH : LOW);
-            digitalWrite(CD4052_B, (ch & 0x02) ? HIGH : LOW);
-
-            // 2. 给硬件多路复用器电平切换时间，同时让传感器发送几帧新数据 (雷达120Hz，约8ms一帧)
-            vTaskDelay(pdMS_TO_TICKS(20));
-
-            // 3. 核心避坑：清空串口缓冲区，丢弃切换瞬间产生的乱码和上个通道的残余数据
-            while(Serial2.available()) {
-                Serial2.read();
-            }
-
-            // 4. 接收当前通道的一帧数据
-            int rx_index = 0;
-            bool frame_received = false;
-            uint32_t start_time = millis();
-
-            // 设置100ms超时机制 (避免某个雷达掉线导致整个系统卡死)
-            while (millis() - start_time < 100 && !frame_received) {
-                while (Serial2.available()) {
-                    rx_buffer[rx_index++] = Serial2.read();
-
-                    // 动态滑窗寻找包头 0xAAAAAAAA
-                    if (rx_index >= 4) {
-                        if (rx_buffer[0] != 0xAA || rx_buffer[1] != 0xAA || 
-                            rx_buffer[2] != 0xAA || rx_buffer[3] != 0xAA) {
-                            for (int i = 0; i < rx_index - 1; i++) {
-                                rx_buffer[i] = rx_buffer[i + 1];
-                            }
-                            rx_index--;
+        // 1. 寻找帧头 0x7B
+        if (Serial2.available() > 0) {
+            if (Serial2.read() == 0x7B) {
+                buffer[0] = 0x7B;
+                
+                // 2. 读取后续 10 字节（设置 10ms 超时确保一帧读取完整）
+                size_t len = Serial2.readBytes(&buffer[1], 10);
+                
+                if (len == 10) {
+                    // 3. 校验帧尾 0x7D
+                    if (buffer[10] == 0x7D) {
+                        
+                        // 4. 计算 XOR 校验 (前 9 字节)
+                        uint8_t checksum = 0;
+                        for (int i = 0; i < 9; i++) {
+                            checksum ^= buffer[i];
                         }
-                    }
-
-                    // 成功收集齐一帧
-                    if (rx_index == FRAME_LENGTH) {
-                        // 校验命令码是否为 0x02
-                        if (rx_buffer[5] == 0x02) {
-                            uint8_t checksum = 0;
-                            for (int i = 4; i < FRAME_LENGTH - 1; i++) {
-                                checksum += rx_buffer[i];
-                            }
+                        
+                        // 5. 校验通过则解析数据
+                        if (checksum == buffer[9]) {
+                            // 大端序解析 (高字节在前)
+                            avg_distances[2] = (buffer[1] << 8) | buffer[2];//通道1距离（mm）
+                            avg_distances[1] = (buffer[3] << 8) | buffer[4];//通道2距离（mm）
+                            avg_distances[3] = (buffer[5] << 8) | buffer[6];//通道3距离（mm）
+                            avg_distances[0] = (buffer[7] << 8) | buffer[8];//通道4距离（mm）
                             
-                            // 校验通过
-                            if (checksum == rx_buffer[FRAME_LENGTH - 1]) {
-                                LidarDataPayload* payload = (LidarDataPayload*)(&rx_buffer[10]);
-                                
-                                // 提取12个点做平均
-                                int32_t sum_dist = 0;
-                                int valid_count = 0;
-                                
-                                for (int p = 0; p < 12; p++) {
-                                    // 过滤掉置信度极低或测量错误(距离为0)的噪点
-                                    if (payload->points[p].confidence > 50 && payload->points[p].distance > 0) {
-                                        sum_dist += payload->points[p].distance;
-                                        valid_count++;
-                                    }
-                                }
-                                
-                                if (valid_count > 0) {
-                                    avg_distances[ch] = sum_dist / valid_count;
-                                } else {
-                                    avg_distances[ch] = 0; // 无有效数据
-                                }
-                                
-                                frame_received = true; // 标记成功接收并打断 while
-                                break;
-                            }
+                            // 调试打印（可选）
+                            // Serial.printf("CH1:%d CH2:%d CH3:%d CH4:%d\n", avg_distances[0], avg_distances[1], avg_distances[2], avg_distances[3]);
                         }
-                        rx_index = 0; // 如果校验失败，清空索引重新找包头
                     }
                 }
-                vTaskDelay(pdMS_TO_TICKS(1)); // 喂狗，避免死锁
-            }
-            
-            // 如果超时未收到数据，赋值为 -1 报警
-            if (!frame_received) {
-                avg_distances[ch] = -1;
             }
         }
-
-        // 5. 4个通道采集完毕，向串口0上报最终汇总结果
-        //Serial.printf("[LiDAR Map] CH0: %4d mm | CH1: %4d mm | CH2: %4d mm | CH3: %4d mm\n",  avg_distances[0], avg_distances[1], avg_distances[2], avg_distances[3]);
-
-        // 6. FreeRTOS 绝对延时，补齐剩余时间，确保整个大循环精准为 500 毫秒 (2Hz)
-        vTaskDelayUntil(&xLastWakeTime, xFrequency); 
+        
+        // 稍微延时，防止过度占用 CPU，同时匹配上报频率 (50ms/次)
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -135,6 +80,7 @@ void movepose(bool Y, float speed, bool stop) {
 
     static int NOW_position = 0;//激光当前位置（角度）
     static int last_position = 0;//激光上次位置（角度）
+    static bool isMoving = false;//是否正在移动
 
     for(int i = 0; i < 3; i++) {
         if(avg_distances[i] > 0) {
@@ -146,6 +92,7 @@ void movepose(bool Y, float speed, bool stop) {
 
 
     if(!stop) {//开始移动
+        isMoving = true;//标记为正在移动
         if(Y) {
             Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -171,23 +118,30 @@ void movepose(bool Y, float speed, bool stop) {
         last_position = NOW_position;
 
     } else {//停止移动
-        Emm_V5_Stop_Now(0, 0);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        // 同步到全局理想位置
-        // 根据当前机器人角度更新坐标
-        float distance_mm = NOW_position - last_position;
-        if (currentPose.theta == 0) {
-            currentPose.y += distance_mm;
-        } else if (currentPose.theta == 90) {
-            currentPose.x += distance_mm;
-        } else if (currentPose.theta == 180) {
-            currentPose.y -= distance_mm;
-        } else if (currentPose.theta == 270) {
-            currentPose.x -= distance_mm;
+        if(isMoving) {  
+            Emm_V5_Stop_Now(0, 0);
+            vTaskDelay(pdMS_TO_TICKS(10));
+            // 同步到全局理想位置
+            // 根据当前机器人角度更新坐标
+            float distance_mm = NOW_position - last_position;
+            if (currentPose.theta == 0) {
+                currentPose.y += distance_mm;
+            } else if (currentPose.theta == 90) {
+                currentPose.x += distance_mm;
+            } else if (currentPose.theta == 180) {
+                currentPose.y -= distance_mm;
+            } else if (currentPose.theta == 270) {
+                currentPose.x -= distance_mm;
+            }
+            NOW_position = 0;//清空当前位置
+            last_position = 0;//清空上次位置
+            // 打印调试信息
+            Serial.printf("Move completed: distance = %.2f mm, new position: (%.2f, %.2f, %.2f)\n", 
+                            distance_mm, currentPose.x, currentPose.y, currentPose.theta);
+            isMoving = false;//标记为未移动
+        } else {
+            Serial.println("Not moving");
         }
-        // 打印调试信息
-        Serial.printf("Move completed: distance = %.2f mm, new position: (%.2f, %.2f, %.2f)\n", 
-                        distance_mm, currentPose.x, currentPose.y, currentPose.theta);
     }
 }
 
@@ -393,14 +347,14 @@ RobotPose GETRPose(int dists[4]) {
     if (currentPose.theta == 0) {//初始角度为0度， ch0指向Y_MINI方向，ch3指向Y_MAXI方向
         //计算Y坐标
         pose.y = (FIELD_Y_MAX + dists[0] - dists[3]) / 2.0f;
-        if (pose.y > 1000 && pose.y < FIELD_Y_MAX - 1000) {//Y坐标在判断有效范围内(两货架之间)
+        if (pose.y > 700 && pose.y < FIELD_Y_MAX - 700) {//Y坐标在判断有效范围内(两货架之间)
             BetweenShelves = true;
         } else {
             BetweenShelves = false;
         }
 
         //计算X坐标
-        if ((dists[1] - dists[2]) < 50 || (dists[1] - dists[2]) > -50) {//两个激光打到同一平面
+        if (ABS(dists[1] - dists[2]) < 100) {//两个激光打到同一平面
             if(BetweenShelves) {//在两货架之间
                 pose.x = FIELD_X_MAX - ((dists[1] + dists[2])/2.0f + SHELF_WIDTH + ROBOT_WIDTH/2.0f);
             } else {//不再两货架之间
@@ -441,14 +395,14 @@ RobotPose GETRPose(int dists[4]) {
     } else if (currentPose.theta == 180) { //角度为180度，ch0指向Y_MAX方向，ch3指向Y_MINI方向
         //计算Y坐标
         pose.y = (FIELD_Y_MAX + dists[3] - dists[0]) / 2.0f ;
-        if (pose.y > 1000 && pose.y < FIELD_Y_MAX - 1000) {//Y坐标在判断有效范围内(两货架之间)
+        if (pose.y > 700 && pose.y < FIELD_Y_MAX - 700) {//Y坐标在判断有效范围内(两货架之间)
             BetweenShelves = true;
         } else {
             BetweenShelves = false;
         }
 
         //计算X坐标
-        if ((dists[1] - dists[2]) < 50 || (dists[1] - dists[2]) > -50) {//两个激光打到同一平面
+        if (ABS(dists[1] - dists[2]) < 100) {//两个激光打到同一平面
             if(BetweenShelves) {//在两货架之间
                 pose.x = (dists[1] + dists[2])/2.0f + SHELF_WIDTH + ROBOT_WIDTH/2.0f;
             } else {//不再两货架之间
@@ -580,14 +534,9 @@ bool AdjustPose() {
 
 // 初始化雷达相关设置
 void initLidar() {
-  // 初始化CD4052引脚
-  pinMode(CD4052_A, OUTPUT);
-  pinMode(CD4052_B, OUTPUT);
-  digitalWrite(CD4052_A, LOW);
-  digitalWrite(CD4052_B, LOW);
 
-  // 初始化串口2（用于雷达通信）
-  Serial2.begin(230400, SERIAL_8N1, SERIAL2_TXD_PIN, SERIAL2_RXD_PIN);
+  // 初始化串口2（用于stm32）
+  Serial2.begin(115200, SERIAL_8N1, SERIAL2_TXD_PIN, SERIAL2_RXD_PIN);
 
   // 创建雷达任务 (分配 8192 字节内存，运行在 Core 0)
   xTaskCreatePinnedToCore(TaskLidarProcess, "LidarProcess", 8192, NULL, 2, &TaskLidarHandle, 0);

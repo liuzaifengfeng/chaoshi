@@ -26,7 +26,7 @@ void initPWM() {
   ledcWrite(2,angleToDuty(300) );//夹臂完全收回，50完全打开
   ledcWrite(3,angleToDuty(180) );//夹爪闭合，0大打开
   ledcWrite(4,angleToDuty(0) );//料台收回，270伸出
-  ledcWrite(5,angleToDuty(240) );//挡板完全关闭，90完全打开
+  ledcWrite(5,angleToDuty(240) );//料筒正置，70到（70-90抖尽）
 
 }
  

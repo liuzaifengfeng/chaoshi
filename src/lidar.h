@@ -6,8 +6,6 @@
 // 引脚定义
 #define SERIAL2_TXD_PIN 16
 #define SERIAL2_RXD_PIN 15
-#define CD4052_A 1
-#define CD4052_B 2
 
 // 机器人坐标结构体
 struct RobotPose {

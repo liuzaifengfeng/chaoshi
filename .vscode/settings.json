@@ -51,5 +51,23 @@
         "ratio": "cpp"
     },
     "stm32-for-vscode.openOCDPath": false,
-    "stm32-for-vscode.armToolchainPath": false
+    "stm32-for-vscode.armToolchainPath": false,
+    "MicroPython.executeButton": [
+        {
+            "text": "▶",
+            "tooltip": "运行",
+            "alignment": "left",
+            "command": "extension.executeFile",
+            "priority": 3.5
+        }
+    ],
+    "MicroPython.syncButton": [
+        {
+            "text": "$(sync)",
+            "tooltip": "同步",
+            "alignment": "left",
+            "command": "extension.execute",
+            "priority": 4
+        }
+    ]
 }
