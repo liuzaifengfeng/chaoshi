@@ -39,6 +39,9 @@ bool isdebug = false;//是否调试模式
 bool ready = false;//是否准备好运行
 int DX_dist = 0;//补货/提货的视觉X轴偏差
 
+// 自动位置上报频率（Hz），0为关闭
+volatile int report_hz = 0;
+
 // 机器人舵机角度结构体
 struct RobotAngle {
     float height;//大臂高度,mm(0-1000)
@@ -601,7 +604,14 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                             //Serial.print("DX_dist set to: ");
                             //Serial.println(DX_dist);
                         }
+                    } else if (strstr(rxBuffer, "posedebug") != 0) {
+                        int hz;
+                        if (sscanf(rxBuffer, "posedebug %d", &hz) == 1) {
+                            report_hz = hz; // 修改全局频率变量
+                            Serial.printf("Main Mode: Report set to %d Hz\n", hz);
+                        }
                     }
+
                     rxIdx = 0;
                 }
             } else if (rxIdx < 63) {
@@ -707,6 +717,13 @@ void Task_Debug_Mode(void *pvParameters){
           Serial.println("Executing reset");
           ESP.restart();//重启ESP32
 
+      } else if(strcmp(cmd.cmd, "posedebug") == 0){
+        // 执行posedebug频率设置
+        report_hz = (int)cmd.param1;
+        Serial.print("Position report set to: ");
+        Serial.print(report_hz);
+        Serial.println(" Hz");          
+
       } else if(strcmp(cmd.cmd, "help") == 0){
         // 执行help命令,显示帮助信息
         Serial.println("Available commands:");
@@ -771,6 +788,33 @@ void Task_Debug_Serial0_CMD(void *pvParameters){
   }
 }
 
+// 调试模式串口0位置DEBUG任务函数
+void Task_Debug_pose(void *pvParameters) {
+    TickType_t xLastWakeTime;
+    const TickType_t xDefaultDelay = pdMS_TO_TICKS(100); // 默认检查频率 10Hz
+
+    while (1) {
+        if (report_hz > 0) {
+            // 计算间隔：1000ms / Hz
+            int interval_ms = 1000 / report_hz;
+            xLastWakeTime = xTaskGetTickCount();
+
+            // 获取实时位置（Rpose）
+            RobotPose realPose = GETRPose(avg_distances);
+
+            // 格式化输出：Cpose x y theta\r Rpose x y theta\r
+            // 使用 \r 匹配上位机解析习惯
+            Serial.printf("Cpose %.2f %.2f %.2f\n\r", currentPose.x, currentPose.y, currentPose.theta);
+            Serial.printf("Rpose %.2f %.2f %.2f\n\r", realPose.x, realPose.y, realPose.theta);
+
+            // 按照设定频率延时
+            vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(interval_ms));
+        } else {
+            // 如果关闭上报，则降低检查频率，减少CPU占用
+            vTaskDelay(xDefaultDelay);
+        }
+    }
+}
 
 // --------------------------------------------------------
 //                      初始化设置
@@ -836,6 +880,7 @@ void setup() {
     xTaskCreate(Task_MainStateMachine, "Task_MainStateMachine", 16384, NULL, 5, NULL);
     xTaskCreate(Task_Main_Serial0_CMD, "Task_Main_Serial0_CMD", 16384, NULL, 5, NULL);
   }
+  xTaskCreate(Task_Debug_pose, "Task_Debug_pose", 4096, NULL, 4, NULL);
 
   Serial.println("Supermarket robot initialized");
   Serial.println("Version: " + String(VERSION));
