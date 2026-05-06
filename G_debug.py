@@ -83,6 +83,7 @@ class RobotDebugger:
             "GETdist":  {"desc": "查询距离", "params": []},
             "GETCpose": {"desc": "查询理想位置", "params": []},
             "GETRpose": {"desc": "查询实际位置", "params": []},
+            "AdjustPose": {"desc": "调整位置", "params": []},
             "reset":    {"desc": "重启ESP32", "params": []}
         }
         self.cmd_selector = ttk.Combobox(cmd_frame, values=list(self.commands.keys()), state="readonly")

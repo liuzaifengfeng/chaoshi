@@ -13,19 +13,19 @@ void initPWM() {
   ledcSetup(1, 50, 13);
   ledcSetup(2, 50, 13);
   ledcSetup(3, 50, 13);
-  ledcSetup(4, 50, 13);
+  //ledcSetup(4, 50, 13);
   ledcSetup(5, 50, 13);
   // 2. 将引脚绑定到通道
   ledcAttachPin(PWM1_PIN, 1);
   ledcAttachPin(PWM2_PIN, 2);
   ledcAttachPin(PWM3_PIN, 3);
-  ledcAttachPin(PWM4_PIN, 4);
+  //ledcAttachPin(PWM4_PIN, 4);
   ledcAttachPin(PWM5_PIN, 5);
 
   ledcWrite(1,angleToDuty(260) );//图像大臂完全放下，20完全抬起
-  ledcWrite(2,angleToDuty(300) );//夹臂完全收回，50完全打开
-  ledcWrite(3,angleToDuty(180) );//夹爪闭合，0大打开
-  ledcWrite(4,angleToDuty(0) );//料台收回，270伸出
+  ledcWrite(2,angleToDuty(300) );//夹臂完全收回，60完全打开
+  ledcWrite(3,angleToDuty(170) );//夹爪闭合，0大打开
+  //ledcWrite(4,angleToDuty(0) );
   ledcWrite(5,angleToDuty(240) );//料筒正置，70到（70-90抖尽）
 
 }
