@@ -70,7 +70,7 @@ void GotoHeight(float height) {
 }
 
 /**
-* @brief 移动机器人到指定位置
+* @brief 移动机器人到指定位置（位置模式）
 * @param Y y轴方向，0为负向移动，1为正向移动。
 * @param speed 移动速度，单位：mm/s
 * @param stop 开始移动0/停止移动1
@@ -146,7 +146,7 @@ void movepose(bool Y, float speed, bool stop) {
 }
 
 /**
- * @brief 移动机器人到指定位置
+ * @brief 移动机器人到指定位置（速度模式）
  * @param x 目标X坐标
  * @param y 目标Y坐标
  * @param theta 目标角度
@@ -367,7 +367,18 @@ RobotPose GETRPose(int dists[4]) {
         return pose;
 
         } else {//两个激光打到不同平面
-            return {0, 0, 0};//非法位置
+
+        pose.x = FIELD_X_MAX - ((dists[1] + dists[2] + SHELF_WIDTH)/2.0f + ROBOT_WIDTH/2.0f);
+
+        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+        if(dists[1] - dists[2] >= 400){
+            pose.theta = currentPose.theta + atan2f(dists[1] -500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+        }else if(dists[2] - dists[1] >= 400){
+            pose.theta = currentPose.theta + atan2f(dists[1] +500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI; 
+        }
+        
+        return pose;
+
         }
 
     } else if (currentPose.theta == 90) { //角度为90度，ch0指向X_MAX方向，ch3指向X_MINI方向
@@ -415,7 +426,18 @@ RobotPose GETRPose(int dists[4]) {
         return pose;
 
         } else {//两个激光打到不同平面
-            return {0, 0, 0};
+
+                pose.x = (dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f;
+
+        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+        if(dists[1] - dists[2] >= 400){
+            pose.theta = currentPose.theta + atan2f(dists[1] -500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+        }else if(dists[2] - dists[1] >= 400){
+            pose.theta = currentPose.theta + atan2f(dists[1] +500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI; 
+        }
+        
+        return pose;
+
         }
 
     } else if (currentPose.theta == 270) { //角度为270度，ch0指向X_MINI方向，ch3指向X_MINI方向

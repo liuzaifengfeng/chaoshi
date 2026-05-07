@@ -10,108 +10,131 @@ import math
 class RobotDebugger:
     def __init__(self, root):
         self.root = root
-        self.root.title("超市机器人串口可视化调试工具 v1.3")
+        self.root.title("超市机器人串口可视化调试工具 v1.5.1")
         self.root.geometry("1100x850") 
         
         self.ser = None
         self.is_receiving = False
         self.auto_poll_enabled = tk.BooleanVar(value=False)
+        self.run_mode = tk.StringVar(value="Release") 
         
         # --- 机器人状态数据 ---
         self.pose_ideal = {'x': 250, 'y': 400, 'theta': 0} 
-        self.pose_real = {'x': 0, 'y': 0, 'theta': 0}  # 初始设为0，触发隐藏逻辑
+        self.pose_real = {'x': 0, 'y': 0, 'theta': 0}
         
-        # --- 滤波参数 [要求1] ---
-        # ALPHA 越小越平滑（抗抖动强），越大响应越快。建议范围 0.1 ~ 0.5
-        self.ALPHA = 0.8 
+        # --- 滤波与阈值参数 ---
+        self.ALPHA = 0.8
+        self.DIST_THRESHOLD = 200.0
+        self.ANGLE_THRESHOLD = 30.0
         
         # 绘制开关
         self.show_ideal = tk.BooleanVar(value=True)
         self.show_real = tk.BooleanVar(value=True)
         
-        # 场地参数 (单位: mm)
+        # 场地参数
         self.FIELD_W = 3100
         self.FIELD_H = 2600
-        self.SCALE = 0.2  # 缩放比例
+        self.SCALE = 0.2 
+        
+        self.cmd_library = {
+            "Debug": {
+                "posedebug": {"desc": "调试开关", "params": ["Hz"]},
+                "GETdist":  {"desc": "查询距离", "params": []},
+                "GETCpose": {"desc": "查询理想位置", "params": []},
+                "GETRpose": {"desc": "查询实际位置", "params": []},
+                "AdjustPose": {"desc": "位置校准", "params": []},
+                "PWM": {"desc": "设置PWM", "params": ["addr", "angle"]},
+                "reset":    {"desc": "重启ESP32", "params": []},
+                "GOTOpose": {"desc": "移动坐标", "params": ["X", "Y", "Theta"]},
+                "GOTOHeight": {"desc": "移动高度", "params": ["Height"]},
+                "movepose": {"desc": "直线移动", "params": ["Y", "speed", "stop"]}
+            },
+            "Release": {
+                "ready": {"desc": "准备运行", "params": []},
+                "orderget": {"desc": "获取订单成功", "params": []},
+                "get0": {"desc": "发现提货商品", "params": []},
+                "get1": {"desc": "发现1号商品", "params": []},
+                "get2": {"desc": "发现2号商品", "params": []},
+                "get3": {"desc": "发现3号商品", "params": []},
+                "get4": {"desc": "发现4号商品", "params": []},
+                "true": {"desc": "确认顾客", "params": []}
+            }
+        }
         
         self.setup_ui()
         self.draw_field() 
 
     def setup_ui(self):
-        # 左侧控制面板
+        # 1. 先创建整体框架
         left_frame = ttk.Frame(self.root)
         left_frame.pack(side="left", fill="y", padx=10, pady=5)
+        
+        right_frame = ttk.Frame(self.root)
+        right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
 
-        # --- 1. 串口连接区域 ---
+        # 2. 【关键】先创建右侧的 Log 组件，防止 update_cmd_menu 调用 self.log 时报错
+        self.canvas = tk.Canvas(right_frame, width=self.FIELD_W * self.SCALE, height=self.FIELD_H * self.SCALE, bg="black")
+        self.canvas.pack(pady=5)
+        self.log_text = tk.Text(right_frame, height=15, state="disabled", background="#f0f0f0")
+        self.log_text.pack(fill="both", expand=True)
+
+        # 3. 创建串口配置
         conn_frame = ttk.LabelFrame(left_frame, text="串口配置")
         conn_frame.pack(fill="x", pady=5)
         self.port_combo = ttk.Combobox(conn_frame, values=self.get_ports(), width=15)
         self.port_combo.pack(padx=5, pady=2)
-        
         btn_box = ttk.Frame(conn_frame)
         btn_box.pack()
-        self.refresh_btn = ttk.Button(btn_box, text="刷新", command=self.refresh_ports)
-        self.refresh_btn.pack(side="left", padx=2)
+        ttk.Button(btn_box, text="刷新", command=self.refresh_ports).pack(side="left", padx=2)
         self.connect_btn = ttk.Button(btn_box, text="连接", command=self.toggle_connect)
         self.connect_btn.pack(side="left", padx=2)
 
-        # --- 2. 可视化控制区域 ---
+        # 4. 模式切换
+        mode_frame = ttk.LabelFrame(left_frame, text="运行模式")
+        mode_frame.pack(fill="x", pady=5)
+        ttk.Radiobutton(mode_frame, text="调试模式 (Debug)", variable=self.run_mode, 
+                        value="Debug", command=self.update_cmd_menu).pack(anchor="w", padx=10)
+        ttk.Radiobutton(mode_frame, text="运行模式 (Release)", variable=self.run_mode, 
+                        value="Release", command=self.update_cmd_menu).pack(anchor="w", padx=10)
+
+        # 5. 地图控制
         view_frame = ttk.LabelFrame(left_frame, text="地图控制")
         view_frame.pack(fill="x", pady=5)
-        
         freq_frame = ttk.Frame(view_frame)
         freq_frame.pack(fill="x", padx=5, pady=2)
-        ttk.Label(freq_frame, text="上报频率:").pack(side="left")
+        ttk.Label(freq_frame, text="频率:").pack(side="left")
         self.freq_combo = ttk.Combobox(freq_frame, values=["1Hz", "2Hz", "5Hz", "10Hz"], width=5, state="readonly")
-        self.freq_combo.current(1) # 默认 2Hz
+        self.freq_combo.current(1)
         self.freq_combo.pack(side="left", padx=5)
+        ttk.Checkbutton(view_frame, text="开启上报", variable=self.auto_poll_enabled, command=self.toggle_posedebug).pack(anchor="w", padx=5)
+        ttk.Checkbutton(view_frame, text="显示理想", variable=self.show_ideal, command=self.update_map).pack(anchor="w", padx=5)
+        ttk.Checkbutton(view_frame, text="显示真实", variable=self.show_real, command=self.update_map).pack(anchor="w", padx=5)
 
-        ttk.Checkbutton(view_frame, text="开启上报 (posedebug)", variable=self.auto_poll_enabled, 
-                        command=self.toggle_posedebug).pack(anchor="w", padx=5)
-        
-        ttk.Checkbutton(view_frame, text="显示理想位置 (黄色)", variable=self.show_ideal, command=self.update_map).pack(anchor="w", padx=5)
-        ttk.Checkbutton(view_frame, text="显示真实位置 (红色)", variable=self.show_real, command=self.update_map).pack(anchor="w", padx=5)
-
-        # --- 3. 指令区域 ---
+        # 6. 指令区域
         cmd_frame = ttk.LabelFrame(left_frame, text="快速指令")
         cmd_frame.pack(fill="x", pady=5)
-        self.commands = {
-            "ready": {"desc": "准备运行", "params": []},
-            "posedebug": {"desc": "调试开关", "params": ["Hz"]},
-            "GOTOpose": {"desc": "移动坐标", "params": ["X", "Y", "Theta"]},
-            "GOTOHeight": {"desc": "移动高度", "params": ["Height"]},
-            "PWM": {"desc": "设置PWM", "params": ["addr", "angle"]},
-            "movepose": {"desc": "直线移动", "params": ["Y", "speed", "stop"]},
-            "GETdist":  {"desc": "查询距离", "params": []},
-            "GETCpose": {"desc": "查询理想位置", "params": []},
-            "GETRpose": {"desc": "查询实际位置", "params": []},
-            "AdjustPose": {"desc": "位置校准", "params": []},
-            "reset":    {"desc": "重启ESP32", "params": []}
-        }
-        self.cmd_selector = ttk.Combobox(cmd_frame, values=list(self.commands.keys()), state="readonly")
+        self.cmd_selector = ttk.Combobox(cmd_frame, state="readonly")
         self.cmd_selector.pack(padx=5, pady=2)
         self.cmd_selector.bind("<<ComboboxSelected>>", self.on_cmd_select)
-        
         self.param_box = ttk.Frame(cmd_frame)
         self.param_box.pack()
         self.param_entries = [ttk.Entry(self.param_box, width=8) for _ in range(3)]
         for e in self.param_entries: e.pack(side="left", padx=2)
-        
         self.send_btn = ttk.Button(cmd_frame, text="发送指令", command=self.send_command, state="disabled")
         self.send_btn.pack(pady=5)
+        
+        # 7. 最后初始化指令菜单
+        self.update_cmd_menu()
 
-        # 右侧面板
-        right_frame = ttk.Frame(self.root)
-        right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
-
-        self.canvas = tk.Canvas(right_frame, width=self.FIELD_W * self.SCALE, height=self.FIELD_H * self.SCALE, bg="black")
-        self.canvas.pack(pady=5)
-
-        self.log_text = tk.Text(right_frame, height=15, state="disabled", background="#f0f0f0")
-        self.log_text.pack(fill="both", expand=True)
+    def update_cmd_menu(self):
+        mode = self.run_mode.get()
+        cmds = list(self.cmd_library[mode].keys())
+        self.cmd_selector['values'] = cmds
+        self.cmd_selector.set(cmds[0] if cmds else "")
+        self.on_cmd_select(None)
+        self.log(f"已切换至 {mode} 指令集")
 
     def to_canvas(self, x, y):
-        """物理坐标(左下角0,0)转画布坐标"""
         cx = x * self.SCALE
         cy = (self.FIELD_H - y) * self.SCALE 
         return cx, cy
@@ -119,17 +142,14 @@ class RobotDebugger:
     def draw_field(self):
         self.canvas.delete("field")
         s = self.SCALE
-        # 围栏
         self.canvas.create_rectangle(0, 0, self.FIELD_W*s, self.FIELD_H*s, outline="white", width=2, tags="field")
-        # 起点 (左下)
+        # 绘制逻辑简化显示...
         x1, y1 = self.to_canvas(0, 0); x2, y2 = self.to_canvas(500, 800)
         self.canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2, tags="field")
         self.canvas.create_text(250*s, (2600-250)*s, text="START", fill="red", tags="field")
-        # 终点 (右上)
         x1, y1 = self.to_canvas(3100-500, 2600-800); x2, y2 = self.to_canvas(3100, 2600)
         self.canvas.create_rectangle(x1, y1, x2, y2, outline="blue", width=2, tags="field")        
         self.canvas.create_text((3100-250)*s, 250*s, text="FINISH", fill="blue", tags="field")
-        # 货架
         self.canvas.create_rectangle(*self.to_canvas(0, 800), *self.to_canvas(500, 1800), outline="gray", tags="field")
         self.canvas.create_rectangle(*self.to_canvas(2600, 800), *self.to_canvas(3100, 1800), outline="gray", tags="field")
 
@@ -138,7 +158,6 @@ class RobotDebugger:
         cx, cy = self.to_canvas(pose['x'], pose['y'])
         angle_rad = math.radians(pose['theta'])
         rw, rh = 490 * s, 670 * s 
-        
         cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
         pts = [(rw/2, rh/2), (-rw/2, rh/2), (-rw/2, -rh/2), (rw/2, -rh/2)]
         points = []
@@ -146,12 +165,9 @@ class RobotDebugger:
             nx = rx * cos_a - ry * sin_a
             ny = rx * sin_a + ry * cos_a
             points.append(cx + nx); points.append(cy - ny)
-        
         style = {"outline": color, "width": 2, "tags": "robot"}
         if is_ideal: style["dash"] = (4, 4)
         self.canvas.create_polygon(points, fill="", **style)
-        
-        # 方向箭头
         al = 100 * s
         self.canvas.create_line(cx, cy, cx + al*cos_a, cy - al*sin_a, fill=color, arrow=tk.LAST, tags="robot")
 
@@ -159,9 +175,7 @@ class RobotDebugger:
         self.canvas.delete("robot")
         if self.show_ideal.get():
             self.draw_robot(self.pose_ideal, "yellow", is_ideal=True)
-        
         if self.show_real.get():
-            # --- 零位检查：若坐标均为0则不绘制 [要求2] ---
             r = self.pose_real
             if not (abs(r['x']) < 0.1 and abs(r['y']) < 0.1 and abs(r['theta']) < 0.1):
                 self.draw_robot(self.pose_real, "red", is_ideal=False)
@@ -173,23 +187,26 @@ class RobotDebugger:
                     line = self.ser.readline().decode('utf-8', errors='ignore').strip()
                     if not line: continue
                     
+                    if "Debug" in line:
+                        self.root.after(0, lambda: [self.run_mode.set("Debug"), self.update_cmd_menu()])
+                    elif "Release" in line:
+                        self.root.after(0, lambda: [self.run_mode.set("Release"), self.update_cmd_menu()])
+
                     if line.startswith("Cpose") or line.startswith("Rpose"):
                         matches = re.findall(r"[-+]?\d*\.\d+|\d+", line)
                         if len(matches) >= 3:
                             nx, ny, nt = float(matches[0]), float(matches[1]), float(matches[2])
-
                             if line.startswith("Cpose"):
                                 self.pose_ideal.update({'x': nx, 'y': ny, 'theta': nt})
                             else:
-                                # --- 1. 过滤零位无效数据 [要求2] ---
-                                if nx == 0 and ny == 0 and nt == 0:
-                                    continue
+                                if nx == 0 and ny == 0 and nt == 0: continue
+                                dist_err = math.sqrt((nx-self.pose_ideal['x'])**2 + (ny-self.pose_ideal['y'])**2)
+                                angle_err = abs(nt - self.pose_ideal['theta'])
+                                #if dist_err > self.DIST_THRESHOLD or angle_err > self.ANGLE_THRESHOLD: continue
                                 
-                                # --- 2. 一阶低通滤波平滑处理 [要求1] ---
                                 self.pose_real['x'] = self.ALPHA * nx + (1 - self.ALPHA) * self.pose_real['x']
                                 self.pose_real['y'] = self.ALPHA * ny + (1 - self.ALPHA) * self.pose_real['y']
                                 self.pose_real['theta'] = self.ALPHA * nt + (1 - self.ALPHA) * self.pose_real['theta']
-                            
                             self.root.after(0, self.update_map)
                     else:
                         self.log(f"接收 << {line}")
@@ -202,9 +219,7 @@ class RobotDebugger:
         hz = self.freq_combo.get().replace("Hz", "") if self.auto_poll_enabled.get() else "0"
         msg = f"posedebug {hz}\n"
         self.ser.write(msg.encode())
-        self.log(f"发送 >> {msg.strip()}")
 
-    # --- 基础工具函数 ---
     def get_ports(self): return [p.device for p in serial.tools.list_ports.comports()]
     def refresh_ports(self): self.port_combo['values'] = self.get_ports()
     
@@ -222,21 +237,28 @@ class RobotDebugger:
             self.connect_btn.config(text="连接"); self.send_btn.config(state="disabled")
 
     def on_cmd_select(self, event):
-        cmd = self.cmd_selector.get(); params = self.commands[cmd]["params"]
+        mode = self.run_mode.get()
+        cmd = self.cmd_selector.get()
+        if not cmd or cmd not in self.cmd_library[mode]: return
+        params = self.cmd_library[mode][cmd]["params"]
         for i, ent in enumerate(self.param_entries):
-            ent.delete(0, tk.END); ent.config(state="normal" if i < len(params) else "disabled")
+            ent.delete(0, tk.END)
+            ent.config(state="normal" if i < len(params) else "disabled")
 
     def send_command(self):
         if not self.ser: return
+        mode = self.run_mode.get()
         cmd = self.cmd_selector.get()
         vals = [e.get() for e in self.param_entries if str(e['state']) == "normal"]
         msg = f"{cmd} {' '.join(vals)}".strip() + "\n"
         self.ser.write(msg.encode()); self.log(f"发送 >> {msg.strip()}")
 
     def log(self, msg):
-        self.log_text.config(state="normal")
-        self.log_text.insert(tk.END, f"[{time.strftime('%H:%M:%S')}] {msg}\n")
-        self.log_text.see(tk.END); self.log_text.config(state="disabled")
+        # 这里的判断确保万一还没初始化完也不至于闪退
+        if hasattr(self, 'log_text'):
+            self.log_text.config(state="normal")
+            self.log_text.insert(tk.END, f"[{time.strftime('%H:%M:%S')}] {msg}\n")
+            self.log_text.see(tk.END); self.log_text.config(state="disabled")
 
 if __name__ == "__main__":
     root = tk.Tk(); app = RobotDebugger(root); root.mainloop()
