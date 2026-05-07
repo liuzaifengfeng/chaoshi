@@ -175,8 +175,8 @@ class RobotDebugger:
         # --- [新增] 下边界一条 500mm 粗线 ---
         # 500mm 在画布上是 500 * 0.2 = 100 像素
         bottom_y = self.FIELD_H * s
-        self.canvas.create_line(self.FIELD_W * s / 2 - 50 * s, bottom_y -2, 
-                                self.FIELD_W * s / 2 + 450 * s, bottom_y -2, fill="green", width=6, tags="field")
+        self.canvas.create_line(self.FIELD_W * s / 2 - 250 * s, bottom_y -2, 
+                                self.FIELD_W * s / 2 + 250 * s, bottom_y -2, fill="green", width=6, tags="field")
 
         # 起点与终点
         x1, y1 = self.to_canvas(0, 0); x2, y2 = self.to_canvas(500, 800)
