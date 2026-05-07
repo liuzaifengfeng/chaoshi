@@ -536,14 +536,14 @@ void Task_MainStateMachine(void *pvParameters) {
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   GotoPose(0, 100, 0 , true, false);
                   //GotoPose(2900, 2200, 0 , false, false);
-                  GotoPose(500, 0, 0 , true, false);
+                  GotoPose(2850, 2200, 0 , false, false);
                   vTaskDelete(NULL); 
                   break;
                 } else {//交付未完成，强制回家
                   Serial.println("not done,go home");
-                  GotoPose(2400, 2200, 0 , false, false);
+                  GotoPose(2200, 2200, 0 , false, false);
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
-                  GotoPose(500, 0, 0 , true, false);
+                  GotoPose(2850, 2200, 0 , false, false);
                   vTaskDelete(NULL); 
                   break;
                 }

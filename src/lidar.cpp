@@ -370,10 +370,10 @@ RobotPose GETRPose(int dists[4]) {
                 pose.x = FIELD_X_MAX - ((dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f);
             }
 
-        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
-        pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+            //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+            pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
 
-        return pose;
+            return pose;
 
         } else {//两个激光打到不同平面
 
@@ -439,23 +439,23 @@ RobotPose GETRPose(int dists[4]) {
                 pose.x = (dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f;
             }
 
-        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
-        pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+            //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+            pose.theta = currentPose.theta + atan2f(dists[1] - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
 
-        return pose;
+            return pose;
 
         } else {//两个激光打到不同平面
 
-                pose.x = (dists[1] + dists[2])/2.0f + ROBOT_WIDTH/2.0f;
+            pose.x = (dists[1] + dists[2]+ SHELF_WIDTH)/2.0f + ROBOT_WIDTH/2.0f;
 
-        //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
-        if(dists[1] - dists[2] >= 400){
-            pose.theta = currentPose.theta + atan2f(dists[1] -500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
-        }else if(dists[2] - dists[1] >= 400){
-            pose.theta = currentPose.theta + atan2f(dists[1] +500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI; 
-        }
+            //计算Theta坐标(度) 对边dists[1]-dists[2] 临边LIDAR_W_1_2
+            if(dists[1] - dists[2] >= 400){
+                pose.theta = currentPose.theta + atan2f(dists[1] -500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI;  
+            }else if(dists[2] - dists[1] >= 400){
+                pose.theta = currentPose.theta + atan2f(dists[1] +500 - dists[2], LIDAR_W_1_2) * 180.0f / M_PI; 
+            }
         
-        return pose;
+            return pose;
 
         }
 

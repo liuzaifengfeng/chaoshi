@@ -10,7 +10,7 @@ import math
 class RobotDebugger:
     def __init__(self, root):
         self.root = root
-        self.root.title("超市机器人串口可视化调试工具 v1.6")
+        self.root.title("超市机器人串口可视化调试工具 v1.8")
         self.root.geometry("1100x850") 
         
         self.ser = None
@@ -76,7 +76,7 @@ class RobotDebugger:
         self.canvas = tk.Canvas(right_frame, width=self.FIELD_W * self.SCALE, height=self.FIELD_H * self.SCALE, bg="black")
         self.canvas.pack(pady=5)
         
-        # --- 绑定鼠标事件 [新增] ---
+        # 绑定鼠标事件
         self.canvas.bind("<Motion>", self.on_mouse_move)
         self.canvas.bind("<Leave>", lambda e: self.canvas.delete("crosshair"))
 
@@ -131,7 +131,6 @@ class RobotDebugger:
         self.update_cmd_menu()
 
     def on_mouse_move(self, event):
-        """显示鼠标位置十字准线与坐标 [新增]"""
         self.canvas.delete("crosshair")
         cx, cy = event.x, event.y
         real_x = cx / self.SCALE
@@ -162,31 +161,89 @@ class RobotDebugger:
     def draw_field(self):
         self.canvas.delete("field")
         s = self.SCALE
+        # 边界
         self.canvas.create_rectangle(0, 0, self.FIELD_W*s, self.FIELD_H*s, outline="white", width=2, tags="field")
+        
+        # --- [新增] 上边界 4 条 300mm 粗线，间隔 5px ---
+        # 300mm 在画布上是 300 * 0.2 = 60 像素
+        # 5px 间隔。起点设在场地中段附近。
+        start_x = (self.FIELD_W / 2 - 600) * s 
+        for i in range(4):
+            x_pos = start_x + (i * (300 * s + 5)) 
+            self.canvas.create_line(x_pos, 5, x_pos + (300 * s), 5, fill="green", width=6, tags="field")
+
+        # --- [新增] 下边界一条 500mm 粗线 ---
+        # 500mm 在画布上是 500 * 0.2 = 100 像素
+        bottom_y = self.FIELD_H * s
+        self.canvas.create_line(self.FIELD_W * s / 2 - 50 * s, bottom_y -2, 
+                                self.FIELD_W * s / 2 + 450 * s, bottom_y -2, fill="green", width=6, tags="field")
+
+        # 起点与终点
         x1, y1 = self.to_canvas(0, 0); x2, y2 = self.to_canvas(500, 800)
         self.canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2, tags="field")
         self.canvas.create_text(250*s, (2600-250)*s, text="START", fill="red", tags="field")
+        
         x1, y1 = self.to_canvas(3100-500, 2600-800); x2, y2 = self.to_canvas(3100, 2600)
         self.canvas.create_rectangle(x1, y1, x2, y2, outline="blue", width=2, tags="field")        
         self.canvas.create_text((3100-250)*s, 250*s, text="FINISH", fill="blue", tags="field")
-        self.canvas.create_rectangle(*self.to_canvas(0, 800), *self.to_canvas(500, 1800), outline="gray", tags="field")
-        self.canvas.create_rectangle(*self.to_canvas(2600, 800), *self.to_canvas(3100, 1800), outline="gray", tags="field")
+        
+        # 货架 (左侧与右侧)
+        shelf_coords = [
+            (0, 800, 500, 1800),      # 左侧货架
+            (2600, 800, 3100, 1800)   # 右侧货架
+        ]
+        
+        for sc in shelf_coords:
+            sx1, sy1, sx2, sy2 = sc
+            px1, py1 = self.to_canvas(sx1, sy1)
+            px2, py2 = self.to_canvas(sx2, sy2)
+            self.canvas.create_rectangle(px1, py1, px2, py2, outline="gray", tags="field")
+            
+            # --- 货架等分线划分 (5个区域需4条线) ---
+            height = abs(sy2 - sy1)
+            for i in range(1, 5):
+                line_y = sy1 + (height / 5) * i
+                lx1, ly1 = self.to_canvas(sx1, line_y)
+                lx2, ly2 = self.to_canvas(sx2, line_y)
+                self.canvas.create_line(lx1, ly1, lx2, ly2, fill="#4A4A4A", tags="field")
 
     def draw_robot(self, pose, color, is_ideal=False):
         s = self.SCALE
         cx, cy = self.to_canvas(pose['x'], pose['y'])
         angle_rad = math.radians(pose['theta'])
         rw, rh = 490 * s, 670 * s 
+        
         cos_a, sin_a = math.cos(angle_rad), math.sin(angle_rad)
+        
+        # 矩形四个顶点
         pts = [(rw/2, rh/2), (-rw/2, rh/2), (-rw/2, -rh/2), (rw/2, -rh/2)]
         points = []
         for rx, ry in pts:
             nx = rx * cos_a - ry * sin_a
             ny = rx * sin_a + ry * cos_a
             points.append(cx + nx); points.append(cy - ny)
+        
         style = {"outline": color, "width": 2, "tags": "robot"}
         if is_ideal: style["dash"] = (4, 4)
         self.canvas.create_polygon(points, fill="", **style)
+        
+        # --- 车头朝向小三角形 (右侧边下1/3处) ---
+        tri_size = 50 * s
+        # 小三角形局部坐标
+        tri_pts = [
+            (rw/2, -rh/6),              # 顶点
+            (rw/2 - tri_size, -rh/6 + tri_size), # 左上
+            (rw/2 - tri_size, -rh/6 - tri_size)  # 左下
+        ]
+        rotated_tri = []
+        for rx, ry in tri_pts:
+            nx = rx * cos_a - ry * sin_a
+            ny = rx * sin_a + ry * cos_a
+            rotated_tri.extend([cx + nx, cy - ny])
+        
+        self.canvas.create_polygon(rotated_tri, fill="", outline=color, width=2, tags="robot")
+
+        # 原有的朝向箭头
         al = 100 * s
         self.canvas.create_line(cx, cy, cx + al*cos_a, cy - al*sin_a, fill=color, arrow=tk.LAST, tags="robot")
 
@@ -219,10 +276,6 @@ class RobotDebugger:
                                 self.pose_ideal.update({'x': nx, 'y': ny, 'theta': nt})
                             else:
                                 if nx == 0 and ny == 0 and nt == 0: continue
-                                dist_err = math.sqrt((nx-self.pose_ideal['x'])**2 + (ny-self.pose_ideal['y'])**2)
-                                angle_err = abs(nt - self.pose_ideal['theta'])
-                                if dist_err > self.DIST_THRESHOLD or angle_err > self.ANGLE_THRESHOLD: continue
-                                
                                 self.pose_real['x'] = self.ALPHA * nx + (1 - self.ALPHA) * self.pose_real['x']
                                 self.pose_real['y'] = self.ALPHA * ny + (1 - self.ALPHA) * self.pose_real['y']
                                 self.pose_real['theta'] = self.ALPHA * nt + (1 - self.ALPHA) * self.pose_real['theta']
