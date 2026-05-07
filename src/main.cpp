@@ -103,6 +103,7 @@ void Task_MainStateMachine(void *pvParameters) {
     RobotPose lastpose = {0, 0, 0};
     bool isReplenishDone_1 = false;//是否在货架1补货完成
     bool isReplenishDone_2 = false;//是否在货架2补货完成
+    int caoweiNOW = 0;//当前爪子上面的补货商品索引(0为无物品)
 
     int start_time = 0;//开始时间，用于计算是否超时
 

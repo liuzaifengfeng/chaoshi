@@ -10,7 +10,7 @@ import math
 class RobotDebugger:
     def __init__(self, root):
         self.root = root
-        self.root.title("超市机器人串口可视化调试工具 v1.5.1")
+        self.root.title("超市机器人串口可视化调试工具 v1.6")
         self.root.geometry("1100x850") 
         
         self.ser = None
@@ -31,7 +31,7 @@ class RobotDebugger:
         self.show_ideal = tk.BooleanVar(value=True)
         self.show_real = tk.BooleanVar(value=True)
         
-        # 场地参数
+        # 场地参数 (单位: mm)
         self.FIELD_W = 3100
         self.FIELD_H = 2600
         self.SCALE = 0.2 
@@ -65,20 +65,25 @@ class RobotDebugger:
         self.draw_field() 
 
     def setup_ui(self):
-        # 1. 先创建整体框架
+        # 1. 创建整体框架
         left_frame = ttk.Frame(self.root)
         left_frame.pack(side="left", fill="y", padx=10, pady=5)
         
         right_frame = ttk.Frame(self.root)
         right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=5)
 
-        # 2. 【关键】先创建右侧的 Log 组件，防止 update_cmd_menu 调用 self.log 时报错
+        # 2. 创建画布与 Log 组件
         self.canvas = tk.Canvas(right_frame, width=self.FIELD_W * self.SCALE, height=self.FIELD_H * self.SCALE, bg="black")
         self.canvas.pack(pady=5)
+        
+        # --- 绑定鼠标事件 [新增] ---
+        self.canvas.bind("<Motion>", self.on_mouse_move)
+        self.canvas.bind("<Leave>", lambda e: self.canvas.delete("crosshair"))
+
         self.log_text = tk.Text(right_frame, height=15, state="disabled", background="#f0f0f0")
         self.log_text.pack(fill="both", expand=True)
 
-        # 3. 创建串口配置
+        # 3. 串口配置
         conn_frame = ttk.LabelFrame(left_frame, text="串口配置")
         conn_frame.pack(fill="x", pady=5)
         self.port_combo = ttk.Combobox(conn_frame, values=self.get_ports(), width=15)
@@ -123,8 +128,23 @@ class RobotDebugger:
         self.send_btn = ttk.Button(cmd_frame, text="发送指令", command=self.send_command, state="disabled")
         self.send_btn.pack(pady=5)
         
-        # 7. 最后初始化指令菜单
         self.update_cmd_menu()
+
+    def on_mouse_move(self, event):
+        """显示鼠标位置十字准线与坐标 [新增]"""
+        self.canvas.delete("crosshair")
+        cx, cy = event.x, event.y
+        real_x = cx / self.SCALE
+        real_y = self.FIELD_H - (cy / self.SCALE)
+        
+        if 0 <= real_x <= self.FIELD_W and 0 <= real_y <= self.FIELD_H:
+            self.canvas.create_line(0, cy, self.FIELD_W * self.SCALE, cy, fill="#3F3F3F", dash=(2, 2), tags="crosshair")
+            self.canvas.create_line(cx, 0, cx, self.FIELD_H * self.SCALE, fill="#3F3F3F", dash=(2, 2), tags="crosshair")
+            
+            coord_text = f"X:{int(real_x)} Y:{int(real_y)}"
+            tx = cx + 10 if cx < (self.FIELD_W * self.SCALE - 80) else cx - 80
+            ty = cy - 15 if cy > 20 else cy + 15
+            self.canvas.create_text(tx, ty, text=coord_text, fill="cyan", anchor="nw", tags="crosshair", font=("Consolas", 9))
 
     def update_cmd_menu(self):
         mode = self.run_mode.get()
@@ -143,7 +163,6 @@ class RobotDebugger:
         self.canvas.delete("field")
         s = self.SCALE
         self.canvas.create_rectangle(0, 0, self.FIELD_W*s, self.FIELD_H*s, outline="white", width=2, tags="field")
-        # 绘制逻辑简化显示...
         x1, y1 = self.to_canvas(0, 0); x2, y2 = self.to_canvas(500, 800)
         self.canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2, tags="field")
         self.canvas.create_text(250*s, (2600-250)*s, text="START", fill="red", tags="field")
@@ -202,7 +221,7 @@ class RobotDebugger:
                                 if nx == 0 and ny == 0 and nt == 0: continue
                                 dist_err = math.sqrt((nx-self.pose_ideal['x'])**2 + (ny-self.pose_ideal['y'])**2)
                                 angle_err = abs(nt - self.pose_ideal['theta'])
-                                #if dist_err > self.DIST_THRESHOLD or angle_err > self.ANGLE_THRESHOLD: continue
+                                if dist_err > self.DIST_THRESHOLD or angle_err > self.ANGLE_THRESHOLD: continue
                                 
                                 self.pose_real['x'] = self.ALPHA * nx + (1 - self.ALPHA) * self.pose_real['x']
                                 self.pose_real['y'] = self.ALPHA * ny + (1 - self.ALPHA) * self.pose_real['y']
@@ -254,7 +273,6 @@ class RobotDebugger:
         self.ser.write(msg.encode()); self.log(f"发送 >> {msg.strip()}")
 
     def log(self, msg):
-        # 这里的判断确保万一还没初始化完也不至于闪退
         if hasattr(self, 'log_text'):
             self.log_text.config(state="normal")
             self.log_text.insert(tk.END, f"[{time.strftime('%H:%M:%S')}] {msg}\n")

@@ -346,7 +346,16 @@ RobotPose GETRPose(int dists[4]) {
     // ---  计算坐标 ---
     if (currentPose.theta == 0) {//初始角度为0度， ch0指向Y_MINI方向，ch3指向Y_MAXI方向
         //计算Y坐标
-        pose.y = (FIELD_Y_MAX + dists[0] - dists[3]) / 2.0f;
+        if(dists[0] + dists[3] > 1000){
+            pose.y = (FIELD_Y_MAX + dists[0] - dists[3]) / 2.0f;
+        }else{
+            if(currentPose.y < 1000){
+                pose.y = ((FIELD_Y_MAX-SHELF_LENGTH)/2.0f + dists[0] - dists[3]) / 2.0f ;
+            }else if(currentPose.y > 1600){
+                pose.y = ((FIELD_Y_MAX-SHELF_LENGTH)/2.0f + dists[0] - dists[3]) / 2.0f + SHELF_LENGTH + (FIELD_Y_MAX-SHELF_LENGTH)/2.0f;
+            }
+        }
+
         if (pose.y > 700 && pose.y < FIELD_Y_MAX - 700) {//Y坐标在判断有效范围内(两货架之间)
             BetweenShelves = true;
         } else {
@@ -404,8 +413,18 @@ RobotPose GETRPose(int dists[4]) {
         return pose;
 
     } else if (currentPose.theta == 180) { //角度为180度，ch0指向Y_MAX方向，ch3指向Y_MINI方向
+
         //计算Y坐标
-        pose.y = (FIELD_Y_MAX + dists[3] - dists[0]) / 2.0f ;
+        if(dists[0] + dists[3] > 1000){
+            pose.y = (FIELD_Y_MAX + dists[3] - dists[0]) / 2.0f ;
+        }else{
+            if(currentPose.y < 1000){
+                pose.y = ((FIELD_Y_MAX-SHELF_LENGTH)/2.0f + dists[3] - dists[0]) / 2.0f ;
+            }else if(currentPose.y > 1600){
+                pose.y = ((FIELD_Y_MAX-SHELF_LENGTH)/2.0f + dists[3] - dists[0]) / 2.0f + SHELF_LENGTH + (FIELD_Y_MAX-SHELF_LENGTH)/2.0f;
+            }
+        }
+
         if (pose.y > 700 && pose.y < FIELD_Y_MAX - 700) {//Y坐标在判断有效范围内(两货架之间)
             BetweenShelves = true;
         } else {
