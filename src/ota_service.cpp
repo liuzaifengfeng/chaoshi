@@ -1,7 +1,13 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <ArduinoOTA.h>
+#include <ESPAsyncWebServer.h>
 #include "ota_service.h"
+
+// 声明外部变量和函数（在 main.cpp 中定义）
+extern AsyncWebServer server;
+extern AsyncWebSocket ws;
+extern void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len);
 
 static bool otaStarted = false;
 static bool wifiConnected = false;
@@ -33,6 +39,13 @@ static void ota_task(void *pvParameters) {
 
     ArduinoOTA.begin();
     Serial.println("OTA service started");
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    ws.onEvent(onWsEvent);
+    server.addHandler(&ws);
+    server.begin();
+    Serial.println("HTTP & WebSocket server started");
 
     for (;;) {
         ArduinoOTA.handle();
@@ -72,6 +85,7 @@ static void wifi_task(void *pvParameters) {
                     Serial.println("try connecting to WiFi... " + String(wifi_ssid) + " " + String(wifi_password));
                     WiFi.begin(wifi_ssid, wifi_password);
                 }
+            vTaskDelay(pdMS_TO_TICKS(20000));
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10000));

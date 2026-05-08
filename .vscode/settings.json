@@ -48,7 +48,10 @@
         "thread": "cpp",
         "cfloat": "cpp",
         "iostream": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "list": "cpp",
+        "initializer_list": "cpp",
+        "regex": "cpp"
     },
     "stm32-for-vscode.openOCDPath": false,
     "stm32-for-vscode.armToolchainPath": false,

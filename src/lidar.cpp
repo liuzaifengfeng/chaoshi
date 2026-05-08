@@ -70,7 +70,7 @@ void GotoHeight(float height) {
 }
 
 /**
-* @brief 移动机器人到指定位置（位置模式）
+* @brief 移动机器人到指定位置（速度模式）
 * @param Y y轴方向，0为负向移动，1为正向移动。
 * @param speed 移动速度，单位：mm/s
 * @param stop 开始移动0/停止移动1
@@ -146,7 +146,7 @@ void movepose(bool Y, float speed, bool stop) {
 }
 
 /**
- * @brief 移动机器人到指定位置（速度模式）
+ * @brief 移动机器人到指定位置（位置模式）
  * @param x 目标X坐标
  * @param y 目标Y坐标
  * @param theta 目标角度
@@ -209,7 +209,7 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
         }
 
        }
-        if(theta != 0) {//旋转移动
+       if(theta != 0) {//旋转移动
         if(theta > 0) {
             Emm_V5_Pos_Control( 1, 0, speed, 50, theta * THETA_PULSE, 0, 1);
             vTaskDelay(pdMS_TO_TICKS(10));
@@ -237,28 +237,29 @@ void GotoPose(float x, float y, float theta,bool isRelative,bool isAdjust) {
 
        if(isAdjust) {//位置微调
 
+        //微调不更新理想位置
        }else{
 
-        //更新当前位置
-        if(currentPose.theta == 0) {
-         currentPose.x += x;
-         currentPose.y += y;
-        } else if(currentPose.theta == 90) {
-         currentPose.y += x;
-         currentPose.x -= y;
-        } else if(currentPose.theta == 180) {
-         currentPose.x -= x;
-         currentPose.y -= y;
-        } else if(currentPose.theta == 270) {
-         currentPose.y -= x;
-         currentPose.x += y;
-        }
-        currentPose.theta += theta;
-        if(currentPose.theta < 0) {
-         currentPose.theta += 360;
-        } else if(currentPose.theta >= 360) {
-         currentPose.theta -= 360;
-        }
+            //更新当前位置
+            if(currentPose.theta == 0) {
+             currentPose.x += x;
+             currentPose.y += y;
+            } else if(currentPose.theta == 90) {
+             currentPose.y += x;
+             currentPose.x -= y;
+            } else if(currentPose.theta == 180) {
+             currentPose.x -= x;
+             currentPose.y -= y;
+            } else if(currentPose.theta == 270) {
+             currentPose.y -= x;
+             currentPose.x += y;
+            }
+            currentPose.theta += theta;
+            if(currentPose.theta < 0) {
+             currentPose.theta += 360;
+            } else if(currentPose.theta >= 360) {
+             currentPose.theta -= 360;
+            }
 
         }
 
@@ -544,24 +545,24 @@ bool AdjustPose() {
         if (needAdjustX || needAdjustY) {
             if(currentPose.theta == 0) {
                 GotoPose(deltaX * adjustRatio, 0, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
                 GotoPose(0, deltaY * adjustRatio, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
             } else if(currentPose.theta == 90) {
                 GotoPose(deltaY * adjustRatio, 0, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
                 GotoPose(0, -deltaX * adjustRatio, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
             } else if(currentPose.theta == 180) {
                 GotoPose(-deltaX * adjustRatio, 0, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
                 GotoPose(0, -deltaY * adjustRatio, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
             } else if(currentPose.theta == 270) {
                 GotoPose(-deltaY * adjustRatio, 0, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
                 GotoPose(0, deltaX * adjustRatio, 0, true, true);
-                vTaskDelay(pdMS_TO_TICKS(500));
+                vTaskDelay(pdMS_TO_TICKS(200));
             }
         }
         
@@ -580,7 +581,7 @@ void initLidar() {
   Serial2.begin(115200, SERIAL_8N1, SERIAL2_TXD_PIN, SERIAL2_RXD_PIN);
 
   // 创建雷达任务 (分配 8192 字节内存，运行在 Core 0)
-  xTaskCreatePinnedToCore(TaskLidarProcess, "LidarProcess", 8192, NULL, 2, &TaskLidarHandle, 0);
+  xTaskCreatePinnedToCore(TaskLidarProcess, "LidarProcess", 16384, NULL, 2, &TaskLidarHandle, 0);
 
   Serial.println("Start Lidar 4-Channel Polling Task...");
 }
