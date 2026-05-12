@@ -42,10 +42,10 @@ static void ota_task(void *pvParameters) {
 
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    ws.onEvent(onWsEvent);
-    server.addHandler(&ws);
-    server.begin();
-    Serial.println("HTTP & WebSocket server started");
+    //ws.onEvent(onWsEvent);
+    //server.addHandler(&ws);
+    //server.begin();
+    //Serial.println("HTTP & WebSocket server started");
 
     for (;;) {
         ArduinoOTA.handle();

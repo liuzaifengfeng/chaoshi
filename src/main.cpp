@@ -1166,7 +1166,7 @@ void setup() {
     xTaskCreate(Task_Main_Serial0_CMD, "Task_Main_Serial0_CMD", 16384, NULL, 5, NULL);
   }
 
-  xTaskCreate(Task_Websocket_Report, "Task_Websocket_Report", 16384, NULL, 4, NULL);
+ // xTaskCreate(Task_Websocket_Report, "Task_Websocket_Report", 16384, NULL, 4, NULL);
   xTaskCreate(Task_Debug_pose, "Task_Debug_pose", 4096, NULL, 4, NULL);
 
   Serial.println("Supermarket robot initialized");
