@@ -201,17 +201,16 @@ void Task_MainStateMachine(void *pvParameters) {
                     GotoHeight(0);
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     GotoPose(1600, 1700, 180 , false, false); //后退旋转
-                    GotoPose(880, 1700, 180 , false, false); //前往补货位置
+                    GotoPose(880, 1800, 180 , false, false); //前往补货位置
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     AdjustPose();
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                   }else{//在同侧
                     GotoHeight(0);
-                    GotoPose(880, 1700, 180 , false, false); //前往补货位置
+                    GotoPose(880, 1800, 180 , false, false); //前往补货位置
                     AdjustPose();
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                   }
-
 
                 } else {//补货全部完成，此刻不该进入此状态
                   Serial.println("[buhuodone]");//告诉上位机确认补货完成
@@ -311,9 +310,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(490);
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        GotoHeight(600);
                         ledcWrite( 3, angleToDuty(0));
                         vTaskDelay(500 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
                         getBuhuoIndex = 0;//清清补货商品索引
                         if(replenishDone == 1){//补货已经完成一次，加上此次，货架一已完成
@@ -431,9 +432,13 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(490);
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        GotoHeight(600);
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(0));
                         vTaskDelay(500 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
                         getBuhuoIndex = 0;//清清补货商品索引
                         if(replenishDone == 3){//补货已经完成一次，加上此次，货架二已完成
