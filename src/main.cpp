@@ -310,11 +310,17 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(60));
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
                         getBuhuoIndex = 0;//清清补货商品索引
-                        //返回上个位置
-                        GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
-                        GotoHeight(0);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
-                        movepose(1, 10,0);//继续移动
+                        if(replenishDone == 1){//补货已经完成一次，加上此次，货架一已完成
+                          isReplenishDone_1 = true;
+                          currentState = STATE_DO_REPLENISH;//执行补货
+                        }else{
+                          //返回上个位置
+                          GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
+                          GotoHeight(0);
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                          movepose(1, 10,0);//继续移动                          
+                        }
+
                         }
                       }
                     }
@@ -417,10 +423,16 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(60));
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
                         getBuhuoIndex = 0;//清清补货商品索引
-                        GotoHeight(0);
-                        GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
-                        movepose(1, 10,0);//继续移动
+                        if(replenishDone == 3){//补货已经完成一次，加上此次，货架二已完成
+                          isReplenishDone_2 = true;
+                          currentState = STATE_DO_REPLENISH;//执行补货
+                        }else{
+                          //返回上个位置
+                          GotoHeight(0);
+                          GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                          movepose(1, 10,0);//继续移动                          
+                        }
                         }
                       }
                     }
@@ -479,6 +491,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        replenishDone++;
                     }
                   if(caoweiNOW != 0){
                         GotoPose(buhuo[caoweiNOW][0], buhuo[caoweiNOW][1], buhuo[caoweiNOW][2], false, false);
@@ -506,6 +519,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        replenishDone++;
                     }
                     zhuaziNOW = 0;
                     caoweiNOW = 0;
@@ -527,6 +541,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        replenishDone++;
                     }
                   if(caoweiNOW != 0){
                         GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2] + 180 , false, false);
@@ -554,6 +569,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        replenishDone++;
                     }
                     zhuaziNOW = 0;
                     caoweiNOW = 0;
