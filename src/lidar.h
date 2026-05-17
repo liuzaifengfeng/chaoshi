@@ -55,7 +55,7 @@ typedef struct {
 } LidarDataPayload;
 #pragma pack(pop)
 
-#define FRAME_LENGTH 195
+#define FRAME_LENGTH 195//雷达数据帧长度
 
 // 声明 FreeRTOS 任务句柄
 extern TaskHandle_t TaskLidarHandle;

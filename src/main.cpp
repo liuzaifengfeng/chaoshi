@@ -106,6 +106,7 @@ enum RobotState {
   int recherche = 0;//是否在联网寻找
   int next = 0;//是否需要切换到下一个商品（网络寻找退出）
   int netget = 0;//是否需要从网络获取商品（网络寻找退出）
+  int OK_ = 0;//上位机命令确认
 
 // 主状态机任务函数（正常运行模式）
 void Task_MainStateMachine(void *pvParameters) {
@@ -145,7 +146,7 @@ void Task_MainStateMachine(void *pvParameters) {
 /**************************************************************/
             case STATE_INIT_WAIT:
                 // 1. 强制静止10秒
-                for(int i = 10; i >= 0; i--){
+                for(int i = 1; i >= 0; i--){//先1秒倒计时
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     Serial.println(String(i));
                 }
@@ -160,6 +161,13 @@ void Task_MainStateMachine(void *pvParameters) {
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("taiqi");
                 Serial.println("[0]");//开启上位机的OCR功能
+                for(int i = 0; i < 100; i++){
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    if(OK_){
+                        OK_ = 0;
+                        break;
+                    }
+                }
                 GotoPose(1100, 0, 0, true, false);
                 vTaskDelay(200 / portTICK_PERIOD_MS);
                 for (int i = 0; i < 30; i++) {//30秒超时，未收到到购物需求，则先前往货架1/2的第一层抓取补货物品
@@ -172,6 +180,13 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoPose(880, 0, 0 , true, false);
                 ledcWrite( 1, angleToDuty(260));//图像大臂放下
                 Serial.println("[2]");//开启上位机的yolo(补货)功能
+                for(int i = 0; i < 100; i++){
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    if(OK_){
+                        OK_ = 0;
+                        break;
+                    }
+                }
                 GotoPose(0, 700, 0 , true, false);//开始采集
                 GotoHeight(550);
                 AdjustPose();
@@ -264,10 +279,10 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(0);
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        vTaskDelay(5000 / portTICK_PERIOD_MS);
                         replenishDone++;//补货完成一次，记录补货次数
                         getBuhuoIndex = 0;//清清补货商品索引
-                        if(replenishDone == 1){//补货已经完成一次，加上此次，货架一已完成
+                        if(replenishDone == 2){//补货已经完成一次，加上此次，货架一已完成
                           isReplenishDone_1 = true;
                           currentState = STATE_DO_REPLENISH;//执行补货
                           break;
@@ -313,10 +328,10 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(490);
-                        vTaskDelay(2000 / portTICK_PERIOD_MS);
-                        GotoHeight(600);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(0));
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        GotoHeight(600);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
@@ -329,7 +344,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           //返回上个位置
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           GotoHeight(0);
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                          vTaskDelay(5000 / portTICK_PERIOD_MS);
                           movepose(1, 10,0);//继续移动                          
                         }
 
@@ -389,7 +404,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
                         replenishDone++;//补货完成一次，记录补货次数
                         getBuhuoIndex = 0;//清清补货商品索引
-                        if(replenishDone == 3){//补货已经完成一次，加上此次，货架一已完成
+                        if(replenishDone == 4){//补货已经完成一次，加上此次，货架一已完成
                           isReplenishDone_2 = true;
                           currentState = STATE_DO_REPLENISH;//执行补货
                           break;
@@ -436,11 +451,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(490);
-                        vTaskDelay(2000 / portTICK_PERIOD_MS);
-                        GotoHeight(600);
-                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(0));
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        GotoHeight(600);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
@@ -453,7 +468,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           //返回上个位置
                           GotoHeight(0);
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                          vTaskDelay(5000 / portTICK_PERIOD_MS);
                           movepose(1, 10,0);//继续移动                          
                         }
                         }
@@ -552,7 +567,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   AdjustPose();
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   if(zhuaziNOW != 0){//爪子上有物品
-                        GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2] + 180 , false, false);
+                        GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2] , false, false);
                         //放置动作
                         GotoHeight(640);
                         vTaskDelay(4000 / portTICK_PERIOD_MS);
@@ -567,7 +582,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         replenishDone++;
                     }
                   if(caoweiNOW != 0){
-                        GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2] + 180 , false, false);
+                        GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2]  , false, false);
                         //抓取动作
                         GotoHeight(550);
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
@@ -616,6 +631,13 @@ void Task_MainStateMachine(void *pvParameters) {
 
                 Serial.println("go to tihuo");
                 Serial.println("[3]");//开启上位机的提货（yolo）功能
+                for(int i = 0; i < 100; i++){
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    if(OK_){
+                        OK_ = 0;
+                        break;
+                    }
+                }
                 isinorder = 0;
                 recherche = 0;
 
@@ -766,6 +788,13 @@ void Task_MainStateMachine(void *pvParameters) {
 /**************************************************************/
             case STATE_DELIVERING:// 前往提货区，识别头像匹配目标顾客 
                 Serial.println("[1]");//上位机交付功能
+                for(int i = 0; i < 100; i++){
+                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    if(OK_){
+                        OK_ = 0;
+                        break;
+                    }
+                }
                 GotoHeight(630);
                 GotoPose(1150, 2100, 90 , false, false);
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -913,6 +942,10 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                     } else if (strcmp(rxBuffer, "netget") == 0) {
                         netget = 1;
                         Serial.println("netget");
+
+                    } else if (strcmp(rxBuffer, "ok") == 0) {
+                        OK_ = 1;
+                        Serial.println("OK");
                     } 
 
                     rxIdx = 0;
