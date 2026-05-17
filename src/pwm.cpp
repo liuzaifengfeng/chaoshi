@@ -36,3 +36,5 @@ int angleToDuty(int angle) {
 
   return map(angle, 0, 360, 204, 1024);
 }
+
+//ledcWrite( 3, angleToDuty(120)); //这样使用

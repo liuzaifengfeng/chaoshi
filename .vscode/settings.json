@@ -51,10 +51,14 @@
         "ratio": "cpp",
         "list": "cpp",
         "initializer_list": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "bitset": "cpp",
+        "chrono": "cpp",
+        "mutex": "cpp",
+        "stdexcept": "cpp"
     },
-    "stm32-for-vscode.openOCDPath": false,
-    "stm32-for-vscode.armToolchainPath": false,
+    "stm32-for-vscode.openOCDPath": "C:\\Users\\LZF\\.eide\\tools\\openocd_7a1adfbec_mingw32\\bin\\openocd.EXE",
+    "stm32-for-vscode.armToolchainPath": "C:\\Users\\LZF\\.eide\\tools\\gcc_arm\\bin",
     "MicroPython.executeButton": [
         {
             "text": "▶",
