@@ -103,7 +103,7 @@ enum RobotState {
   int deliverDone = 0;//已提货物品数量
   bool isCustomer = false;  //是否识别到顾客
   bool isDelivered = false;//是否已投递
-  int recherche = 0;//是否在联网寻找
+  int search = 0;//是否在联网寻找
   int next = 0;//是否需要切换到下一个商品（网络寻找退出）
   int netget = 0;//是否需要从网络获取商品（网络寻找退出）
   int OK_ = 0;//上位机命令确认
@@ -480,16 +480,22 @@ void Task_MainStateMachine(void *pvParameters) {
                   isReplenishDone_2 = true;
                   if(caoweiNOW == 0 && zhuaziNOW == 0){//槽位和爪子上均无物品（货架一补货均在同侧完成）
                     currentState = STATE_GO_SHOPPING;//补货结束，提货
+                    Serial.println("[buhuodone]");
                     break;
                   } else {//有待放置补货商品
-                    currentState = STATE_DO_REPLENISH;//前往货架2补货
+                    currentState = STATE_DO_REPLENISH;//前往货架补货
                     break;
                   }
 
                 } else {//补货全部完成
-                  currentState = STATE_GO_SHOPPING;
-                  Serial.println("[buhuodone]");
-                  break;
+                  if(caoweiNOW == 0 && zhuaziNOW == 0){//槽位和爪子上均无物品（货架一补货均在同侧完成）
+                    currentState = STATE_GO_SHOPPING;//补货结束，提货
+                    Serial.println("[buhuodone]");
+                    break;
+                  } else {//有待放置补货商品
+                    currentState = STATE_DO_REPLENISH;//前往货架补货
+                    break;
+                  }
                 }
 
                 break;//正常不会执行到这行代码
@@ -520,8 +526,9 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2], false, false);
                         //放置动作
                         GotoHeight(640);
-                        vTaskDelay(4000 / portTICK_PERIOD_MS);
+                        vTaskDelay(5000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         GotoHeight(600);
                         ledcWrite( 3, angleToDuty(140));//夹爪半开
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -529,6 +536,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         replenishDone++;
                     }
                   if(caoweiNOW != 0){
@@ -541,8 +549,9 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(490);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(170));
-                        vTaskDelay(100 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(550);
                         vTaskDelay(1500 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
@@ -550,6 +559,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoHeight(640);
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         GotoHeight(600);
                         ledcWrite( 3, angleToDuty(140));//夹爪半开
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -557,6 +567,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         replenishDone++;
                     }
                     zhuaziNOW = 0;
@@ -572,6 +583,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoHeight(640);
                         vTaskDelay(4000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         GotoHeight(600);
                         ledcWrite( 3, angleToDuty(140));//夹爪半开
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -579,6 +591,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         replenishDone++;
                     }
                   if(caoweiNOW != 0){
@@ -591,8 +604,9 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(490);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(170));
-                        vTaskDelay(100 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(550);
                         vTaskDelay(1500 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
@@ -600,6 +614,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoHeight(640);
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         GotoHeight(600);
                         ledcWrite( 3, angleToDuty(140));//夹爪半开
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -607,6 +622,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         GotoPose(-200, 0, 0 , true, false);
                         ledcWrite( 3, angleToDuty(0));//夹爪大开  
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         replenishDone++;
                     }
                     zhuaziNOW = 0;
@@ -639,7 +655,7 @@ void Task_MainStateMachine(void *pvParameters) {
                     }
                 }
                 isinorder = 0;
-                recherche = 0;
+                search = 0;
 
                 GotoHeight(300);
 
@@ -652,10 +668,10 @@ void Task_MainStateMachine(void *pvParameters) {
                   movepose(1, 10,0);//开始移动
                   while(avg_distances[0] < 1600 ){
                     vTaskDelay(100 / portTICK_PERIOD_MS);
-                    if(isinorder != 0 || recherche != 0) {
+                    if(isinorder != 0 || search != 0) {
 
-                      if(recherche == 1){
-                        recherche = 0;
+                      if(search == 1){
+                        search = 0;
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
@@ -680,7 +696,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   AdjustPose();
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
-                  GotoPose(880, 1800, 0 , false, false); 
+                  GotoPose(880, 1800, 180 , false, false); 
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 
@@ -688,10 +704,10 @@ void Task_MainStateMachine(void *pvParameters) {
                   movepose(1, 10,0);//开始移动
                   while(avg_distances[0] < 1600){
                     vTaskDelay(100 / portTICK_PERIOD_MS);
-                    if(isinorder != 0 || recherche != 0) {
+                    if(isinorder != 0 || search != 0) {
 
-                      if(recherche == 1){
-                        recherche = 0;
+                      if(search == 1){
+                        search = 0;
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
@@ -719,10 +735,10 @@ void Task_MainStateMachine(void *pvParameters) {
                   movepose(1, 10,0);//开始移动
                   while(avg_distances[0] < 1550 ){
                     vTaskDelay(100 / portTICK_PERIOD_MS);
-                    if(isinorder != 0 || recherche != 0) {
+                    if(isinorder != 0 || search != 0) {
 
-                      if(recherche == 1){
-                        recherche = 0;
+                      if(search == 1){
+                        search = 0;
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
@@ -755,10 +771,10 @@ void Task_MainStateMachine(void *pvParameters) {
                   movepose(1, 10,0);//开始移动
                   while(avg_distances[0] < 1550){
                     vTaskDelay(100 / portTICK_PERIOD_MS);
-                    if(isinorder != 0 || recherche != 0) {
+                    if(isinorder != 0 || search != 0) {
 
-                      if(recherche == 1){
-                        recherche = 0;
+                      if(search == 1){
+                        search = 0;
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
@@ -931,9 +947,9 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                             Serial.printf("Main Mode: Report set to %d Hz\n", hz);
                         }
 
-                    } else if (strcmp(rxBuffer, "recherche") == 0) {
-                        recherche = 1;
-                        Serial.println("recherche ing...");
+                    } else if (strcmp(rxBuffer, "search") == 0) {
+                        search = 1;
+                        Serial.println("search ing...");
 
                     } else if (strcmp(rxBuffer, "next") == 0) {
                         next = 1;
