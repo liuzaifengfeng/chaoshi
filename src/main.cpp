@@ -41,6 +41,12 @@ CRGB leds[NUM_LEDS];
 
 //全局变量
 RobotPose currentPose = {0, 0, 0};//当前理想机器人位置,中心坐标，(x,y,theta),mm,mm,度(0-360)
+
+// 任务句柄用于挂起主状态机任务
+TaskHandle_t xTask_MainStateMachine_Handle = NULL;
+
+// 定时器句柄
+TimerHandle_t xHomeTimer = NULL;
 //RobotAngle servoPose = {0, 0, 0, 0, 0};//当前大臂高度，舵机角度,mm(0-1000),度(0-360)
 bool isdebug = false;//是否调试模式
 bool ready = false;//是否准备好运行
@@ -110,6 +116,36 @@ enum RobotState {
   int OK_ = 0;//上位机命令确认
 
 // 主状态机任务函数（正常运行模式）
+/**
+ * @brief 定时器回调函数 - 超时自动触发回家逻辑
+ * @param xTimer 定时器句柄
+ */
+void vHomeTimerCallback(TimerHandle_t xTimer) {
+    Serial.println("[TIMER] Timeout triggered! Forcing robot to go home...");
+    
+    // 挂起主状态机任务
+    if (xTask_MainStateMachine_Handle != NULL) {
+        vTaskSuspend(xTask_MainStateMachine_Handle);
+        Serial.println("[TIMER] Task_MainStateMachine suspended");
+    }
+
+    movepose(0,0,1);//停下
+
+    // 执行回家逻辑（终点区坐标：2850, 2200, 0）
+    
+    // 安全路径返回终点区
+    GotoHeight(520);
+    ledcWrite(3, angleToDuty(180)); // 闭合夹爪
+    ledcWrite(5,angleToDuty(240) );
+    GotoPose(2200, 2200, 0 , false, false);
+    ledcWrite(2, angleToDuty(300));
+    AdjustPose();
+    GotoHeight(0);
+    GotoPose(2850, 2200, 0 , false, false);
+    
+    Serial.println("[TIMER] Robot arrived at home position");
+}
+
 void Task_MainStateMachine(void *pvParameters) {
     int buhuoNOW = 0;//当前爪子上面的补货商品索引
     RobotPose lastpose = {0, 0, 0};
@@ -140,6 +176,13 @@ void Task_MainStateMachine(void *pvParameters) {
     }
     start_time = millis();
     Serial.println("start"); 
+    
+    // 启动回家定时器
+    if (xHomeTimer != NULL) {
+        xTimerStart(xHomeTimer, 0);
+        Serial.println("[SYSTEM] Home timer started");
+    }
+    
     while (1) {
         switch (currentState) {
 /**************************************************************/
@@ -147,7 +190,7 @@ void Task_MainStateMachine(void *pvParameters) {
 /**************************************************************/
             case STATE_INIT_WAIT:
                 // 1. 强制静止10秒
-                for(int i = 1; i >= 0; i--){//先1秒倒计时
+                for(int i = 1; i >= 0; i--){//先1秒倒计时。//10秒等待在初始化时已经完成
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     Serial.println(String(i));
                 }
@@ -669,8 +712,8 @@ void Task_MainStateMachine(void *pvParameters) {
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
-                          vTaskDelay(100 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
                             movepose(1, 10,0);//开始移动
@@ -707,8 +750,8 @@ void Task_MainStateMachine(void *pvParameters) {
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
-                          vTaskDelay(100 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
                             movepose(1, 10,0);//开始移动
@@ -740,8 +783,8 @@ void Task_MainStateMachine(void *pvParameters) {
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
-                          vTaskDelay(100 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
                             movepose(1, 10,0);//开始移动
@@ -778,8 +821,8 @@ void Task_MainStateMachine(void *pvParameters) {
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
-                          vTaskDelay(100 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(1000 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
                             movepose(1, 10,0);//开始移动
@@ -808,6 +851,7 @@ void Task_MainStateMachine(void *pvParameters) {
 /**************************************************************/
             case STATE_DELIVERING:// 前往提货区，识别头像匹配目标顾客 
                 Serial.println("[1]");//上位机交付功能
+                isCustomer = false;//清零
                 for(int i = 0; i < 100; i++){
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                     if(OK_){
@@ -876,8 +920,9 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
         }
         vTaskDelay(50 / portTICK_PERIOD_MS);
-        if(millis() - start_time > 650000) {//8分钟超时,预留30秒.测试阶段，先给650秒（11分钟）时间，确保机器人到达终点区
-          Serial.println("timeout");
+        // 原有的超时检查保留作为备份
+        if(millis() - start_time > 450000) {
+          Serial.println("timeout backup");
           currentState = STATE_FINISH_HOME;
         }
     }
@@ -1172,45 +1217,6 @@ void Task_Debug_pose(void *pvParameters) {
       }
 }
 
-// 调试模式websocket位置DEBUG任务函数
-void Task_Websocket_Report(void *pvParameters) {
-    for (;;) {
-        RobotPose realPose = GETRPose(avg_distances);//获取实时位置（Rpose）
-        if (report_hz > 0 && ws.count() > 0) {
-            // 10Hz 上报逻辑
-            JsonDocument doc;//
-            doc["type"] = "Cpose";//上报类型为Cpose
-            doc["x"] = currentPose.x;
-            doc["y"] = currentPose.y;
-            doc["theta"] = currentPose.theta;
-            //Rpose
-            doc["type"] = "Rpose";
-            doc["x"] = realPose.x;
-            doc["y"] = realPose.y;
-            doc["theta"] = realPose.theta;
-            String output;
-            serializeJson(doc, output);
-            ws.textAll(output); // 向所有连接的上位机广播
-        }
-        vTaskDelay(pdMS_TO_TICKS(1000 / (report_hz > 0 ? report_hz : 1)));
-    }
-}
-
-// 在 main.cpp 顶部或者 server 定义下方添加
-void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, 
-               void *arg, uint8_t *data, size_t len) {
-    if (type == WS_EVT_CONNECT) {
-        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
-    } else if (type == WS_EVT_DISCONNECT) {
-        Serial.printf("WebSocket client #%u disconnected\n", client->id());
-    } else if (type == WS_EVT_DATA) {
-        // 收到来自 Python 调试器的指令
-        String msg = "";
-        for(size_t i=0; i<len; i++) msg += (char)data[i];
-        Serial.printf("WS Received: %s\n", msg.c_str());
-        // 这里可以根据指令把数据塞进你的调试队列 xDebugQueue
-    }
-}
 
 // --------------------------------------------------------
 //                      初始化设置
@@ -1238,9 +1244,8 @@ void setup() {
   FastLED.show();
 
 
-  // 初始化时延时十秒，监测boot按键
+  // 初始化时延时5秒，监测boot按键
   pinMode(MODE_key, INPUT_PULLUP);  // 设置MODE_key为输入模式，启用上拉电阻
-  //Serial.println("Waiting for 10 seconds, press MODE_key to enter debug mode...");
   
   unsigned long startTime = millis();
   bool bootKeyPressed = false;
@@ -1273,8 +1278,24 @@ void setup() {
     // 正常模式设为绿色
     leds[0] = CRGB::Green;
     FastLED.show();
-    xTaskCreate(Task_MainStateMachine, "Task_MainStateMachine", 16384, NULL, 5, NULL);
+    xTaskCreate(Task_MainStateMachine, "Task_MainStateMachine", 16384, NULL, 5, &xTask_MainStateMachine_Handle);
     xTaskCreate(Task_Main_Serial0_CMD, "Task_Main_Serial0_CMD", 16384, NULL, 5, NULL);
+    
+    // 创建定时器：8分钟(480秒)后触发回家逻辑，预留30秒缓冲时间
+    const TickType_t xTimerPeriod = pdMS_TO_TICKS(450000); // 450秒
+    xHomeTimer = xTimerCreate(
+        "HomeTimer",           // 定时器名称
+        xTimerPeriod,          // 定时周期（tick）
+        pdFALSE,               // 单次触发（非周期性）
+        (void *)0,             // 定时器ID
+        vHomeTimerCallback     // 回调函数
+    );
+    
+    if (xHomeTimer != NULL) {
+        // 启动定时器（在ready信号之后启动）
+        // 实际启动放在任务开始执行后
+        Serial.println("[SYSTEM] Home timer created successfully");
+    }
   }
 
  // xTaskCreate(Task_Websocket_Report, "Task_Websocket_Report", 16384, NULL, 4, NULL);
