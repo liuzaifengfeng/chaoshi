@@ -653,7 +653,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 isinorder = 0;
                 search = 0;
 
-                GotoHeight(300);//改为390
+                GotoHeight(300);
 
                 if(currentPose.theta == 0){//在货架一
                 //补货完成后在货架一，就近在一开始提货
