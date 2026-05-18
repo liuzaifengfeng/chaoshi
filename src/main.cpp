@@ -10,11 +10,8 @@
 #include <FastLED.h>
 #include "ota_service.h"
 
-#include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h> // 用于高效处理报文
 
-AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
 
 #include "Emm_V5.h"
 #include "lidar.h"
@@ -25,6 +22,9 @@ AsyncWebSocket ws("/ws");
 #define NUM_LEDS 1
 #define OTA_HOSTNAME "espchaoshi"
 #define VERSION "1.3.0"
+
+#define Speed_buhuo 10//补货速度，mm/s
+#define Speed_tihuo 10//提货速度，mm/s
 
 //四个待补货商品位置（二维数组），{ x坐标, y坐标, theta角度, 是否完成}
 float buhuo[5][4] = {
@@ -201,7 +201,7 @@ void Task_MainStateMachine(void *pvParameters) {
 //               前往小方桌识别购物需求 
 /**************************************************************/
             case STATE_READ_ORDER://前往小方桌识别购物需求
-                ledcWrite( 1, angleToDuty(40));//图像大臂完全抬起
+                ledcWrite( 1, angleToDuty(120));//图像大臂完全抬起
                 vTaskDelay(100 / portTICK_PERIOD_MS);
                 Serial.println("taiqi");
                 Serial.println("[0]");//开启上位机的OCR功能
@@ -221,8 +221,9 @@ void Task_MainStateMachine(void *pvParameters) {
                         break;
                     }
                 }
+                GotoHeight(550);
                 GotoPose(880, 0, 0 , true, false);
-                ledcWrite( 1, angleToDuty(260));//图像大臂放下
+                ledcWrite( 1, angleToDuty(270));//图像大臂放下
                 Serial.println("[2]");//开启上位机的yolo(补货)功能
                 for(int i = 0; i < 100; i++){
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -231,14 +232,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         break;
                     }
                 }
-                GotoPose(0, 700, 0 , true, false);//开始采集
-                GotoHeight(550);
-                AdjustPose();
-                vTaskDelay(2000 / portTICK_PERIOD_MS);
                 ledcWrite( 2, angleToDuty(60));//夹臂完全打开
                 vTaskDelay(500 / portTICK_PERIOD_MS);
                 ledcWrite( 3, angleToDuty(0));//夹爪完全打开
-                vTaskDelay(2000 / portTICK_PERIOD_MS);
+                GotoPose(0, 700, 0 , true, false);
+                AdjustPose();
                 GotoHeight(0);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
               
@@ -285,7 +283,7 @@ void Task_MainStateMachine(void *pvParameters) {
 
                 if(!isReplenishDone_1) {//货架1 的补货未完成
 
-                  movepose(1, 10,0);//开始移动
+                  movepose(1, Speed_buhuo,0);//开始移动
                   getBuhuoIndex = 0;//先清零
                   while(avg_distances[0] < 1600){
                     getBuhuoIndex = 0;//每个小循环前先清零
@@ -335,7 +333,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           GotoHeight(0);
                           vTaskDelay(1000 / portTICK_PERIOD_MS);
-                          movepose(1, 10,0);//继续移动                          
+                          movepose(1, Speed_buhuo,0);//继续移动                          
                         }
                       }else {//不在同侧，先放在料台或爪子上
                         if(caoweiNOW != 0 || replenishDone == 1){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架一已完成（只有这个了）
@@ -389,7 +387,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           GotoHeight(0);
                           vTaskDelay(5000 / portTICK_PERIOD_MS);
-                          movepose(1, 10,0);//继续移动                          
+                          movepose(1, Speed_buhuo,0);//继续移动                          
                         }
 
                         }
@@ -408,7 +406,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   }
 
                 } else if(!isReplenishDone_2) {//前往货架2补货
-                  movepose(1, 10,0);
+                  movepose(1, Speed_buhuo,0);
                   getBuhuoIndex = 0;//先清零;
                   while(avg_distances[0] < 1600){
                     getBuhuoIndex = 0;//每个小循环前先清零
@@ -458,7 +456,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           GotoHeight(0);
                           vTaskDelay(1000 / portTICK_PERIOD_MS);
-                          movepose(1, 10,0);//继续移动                          
+                          movepose(1, Speed_buhuo,0);//继续移动                          
                         }
                       }else if(buhuo[buhuoNOW][2] != currentPose.theta) {//不在同侧，先放在料台
                         if(caoweiNOW != 0 || replenishDone == 3){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架二已完成（只有这个了）
@@ -508,7 +506,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           GotoHeight(0);
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           vTaskDelay(5000 / portTICK_PERIOD_MS);
-                          movepose(1, 10,0);//继续移动      
+                          movepose(1, Speed_buhuo,0);//继续移动      
                         }
                       }
                     }
@@ -704,19 +702,23 @@ void Task_MainStateMachine(void *pvParameters) {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 AdjustPose();
                   //从货架一开始遍历
-                  movepose(1, 10,0);//开始移动
+                  movepose(1, Speed_tihuo,0);//开始移动
                   while(avg_distances[0] < 1600 ){
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    isinorder = 0;
+                    search = 0;
+                    next = 0;
+                    vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(isinorder != 0 || search != 0) {
 
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 1000; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(10 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
-                            movepose(1, 10,0);//开始移动
+                            movepose(1, Speed_tihuo,0);//开始移动
+                            break;
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -730,6 +732,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   }
 
                   movepose(0, 0, 1);//停下
+                  Serial.println("[3_0]");//模式三暂停
 
 
                   //从中间过去，随便校准
@@ -742,19 +745,24 @@ void Task_MainStateMachine(void *pvParameters) {
 
 
                   //开始货架二遍历
-                  movepose(1, 10,0);//开始移动
-                  while(avg_distances[0] < 1600){
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                  Serial.println("[3_1]");//模式三继续
+                  movepose(1, Speed_tihuo,0);//开始移动
+                  while(avg_distances[0] < 1600 ){
+                    isinorder = 0;
+                    search = 0;
+                    next = 0;
+                    vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(isinorder != 0 || search != 0) {
 
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 1000; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(10 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
-                            movepose(1, 10,0);//开始移动
+                            movepose(1, Speed_tihuo,0);//开始移动
+                            break;
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -775,19 +783,23 @@ void Task_MainStateMachine(void *pvParameters) {
                 vTaskDelay(1000 / portTICK_PERIOD_MS);
                 AdjustPose();
                   //从货架二开始遍历
-                  movepose(1, 10,0);//开始移动
+                  movepose(1, Speed_tihuo,0);//开始移动
                   while(avg_distances[0] < 1550 ){
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    isinorder = 0;
+                    search = 0;
+                    next = 0;
+                    vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(isinorder != 0 || search != 0) {
 
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 1000; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(10 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
-                            movepose(1, 10,0);//开始移动
+                            movepose(1, Speed_tihuo,0);//开始移动
+                            break;
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -801,6 +813,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   }
 
                   movepose(0, 0, 1);//停下
+                  Serial.println("[3_0]");//模式三暂停
 
 
                   //从中间过去，随便校准
@@ -813,19 +826,24 @@ void Task_MainStateMachine(void *pvParameters) {
 
 
                   //开始货架一遍历
-                  movepose(1, 10,0);//开始移动
+                  Serial.println("[3_1]");//模式三继续
+                  movepose(1, Speed_tihuo,0);//开始移动
                   while(avg_distances[0] < 1550){
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    isinorder = 0;
+                    search = 0;
+                    next = 0;
+                    vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(isinorder != 0 || search != 0) {
 
                       if(search == 1){
                         search = 0;
                         movepose(0, 0, 1);//停下
-                        for (int i = 0; i < 10; i++) { //网络超时10s(10ms * 1000次)
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        for (int i = 0; i < 1000; i++) { //网络超时10s(10ms * 1000次)
+                          vTaskDelay(10 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
-                            movepose(1, 10,0);//开始移动
+                            movepose(1, Speed_tihuo,0);//开始移动
+                            break;
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();

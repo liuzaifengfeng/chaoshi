@@ -6,7 +6,7 @@
 // 引脚定义
 #define SERIAL2_TXD_PIN 16
 #define SERIAL2_RXD_PIN 15
-
+  
 // 机器人坐标结构体
 struct RobotPose {
     float x;
