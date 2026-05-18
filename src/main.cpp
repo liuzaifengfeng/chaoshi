@@ -27,12 +27,13 @@ AsyncWebSocket ws("/ws");
 #define VERSION "1.3.0"
 
 //四个待补货商品位置（二维数组），{ x坐标, y坐标, theta角度, 是否完成}
-float buhuo[4][4] = {
-    {2130, 1300, 0, 0}, // 商品1 锐澳水蜜桃 
+float buhuo[5][4] = {
+    {0, 0, 0, 0}, // 商品0 空 
     {2130, 1480, 0, 0}, // 商品2 百事可乐
     {1000, 1500, 180, 0}, // 商品3 旺仔牛奶
-    {1000, 1300, 180, 0}  // 商品4 维他奶
-};     
+    {1000, 1300, 180, 0}, // 商品4 维他奶
+    {2130, 1300, 0, 0}, // 商品5 锐澳水蜜桃 
+};
 int getBuhuoIndex = 0;//当前需要补货的商品索引
 
 // LED数组
@@ -244,7 +245,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   movepose(1, 10,0);//开始移动
                   getBuhuoIndex = 0;//先清零
                   while(avg_distances[0] < 1600){
-                    //getBuhuoIndex = 0;//每个小循环前先清零
+                    getBuhuoIndex = 0;//每个小循环前先清零
                     vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(getBuhuoIndex != 0) {//有补货商品需要抓取
                       movepose(0, 0, 1);
@@ -367,10 +368,11 @@ void Task_MainStateMachine(void *pvParameters) {
                   movepose(1, 10,0);
                   getBuhuoIndex = 0;//先清零;
                   while(avg_distances[0] < 1600){
+                    getBuhuoIndex = 0;//每个小循环前先清零
                     vTaskDelay(50 / portTICK_PERIOD_MS);
                     if(getBuhuoIndex != 0) {
                         movepose(0, 0, 1);
-                        Serial.println("get buhuo"+String(getBuhuoIndex));
+                        Serial.println("get buhuo "+String(getBuhuoIndex));
                         buhuoNOW = getBuhuoIndex-1;//记录当前爪子上面的补货商品索引
                         lastpose = currentPose;
                         getBuhuoIndex = 0;//清清补货商品索引
@@ -427,10 +429,9 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoHeight(50);
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoPose(-150, 0, 0 , true, false);
-                        zhuaziNOW = buhuoNOW;//记录当前爪子物品
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
-                        movepose(0, 0, 1);//停止
-                        isReplenishDone_2 = true;
+                        zhuaziNOW = buhuoNOW;//记录当前爪子物品
+                        //isReplenishDone_2 = true;
                         getBuhuoIndex = 0;//清清补货商品索引
                         currentState = STATE_DO_REPLENISH;//执行补货
                         break;
@@ -460,17 +461,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
                         getBuhuoIndex = 0;//清清补货商品索引
-                        if(replenishDone == 3){//补货已经完成一次，加上此次，货架二已完成
-                          isReplenishDone_2 = true;
-                          currentState = STATE_DO_REPLENISH;//执行补货
-                          break;
-                        }else{
                           //返回上个位置
                           GotoHeight(0);
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           vTaskDelay(5000 / portTICK_PERIOD_MS);
-                          movepose(1, 10,0);//继续移动                          
-                        }
+                          movepose(1, 10,0);//继续移动      
                         }
                       }
                     }
@@ -478,6 +473,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   
                   movepose(0, 0, 1);//第二货架完成
                   isReplenishDone_2 = true;
+
                   if(caoweiNOW == 0 && zhuaziNOW == 0){//槽位和爪子上均无物品（货架一补货均在同侧完成）
                     currentState = STATE_GO_SHOPPING;//补货结束，提货
                     Serial.println("[buhuodone]");
@@ -639,7 +635,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
                 break;
 /**************************************************************/
-//               前往第二层寻找6个清单物品
+//               前往第二层寻找6个清单物品（提货逻辑）
 /**************************************************************/
             case STATE_GO_SHOPPING://前往第二层寻找6个清单物品
                 // 前往第二层寻找6个清单物品
@@ -657,7 +653,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 isinorder = 0;
                 search = 0;
 
-                GotoHeight(300);
+                GotoHeight(300);//改为390
 
                 if(currentPose.theta == 0){//在货架一
                 //补货完成后在货架一，就近在一开始提货
@@ -672,10 +668,12 @@ void Task_MainStateMachine(void *pvParameters) {
 
                       if(search == 1){
                         search = 0;
+                        movepose(0, 0, 1);//停下
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
+                            movepose(1, 10,0);//开始移动
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -708,10 +706,12 @@ void Task_MainStateMachine(void *pvParameters) {
 
                       if(search == 1){
                         search = 0;
+                        movepose(0, 0, 1);//停下
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
+                            movepose(1, 10,0);//开始移动
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -739,10 +739,12 @@ void Task_MainStateMachine(void *pvParameters) {
 
                       if(search == 1){
                         search = 0;
+                        movepose(0, 0, 1);//停下
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
+                            movepose(1, 10,0);//开始移动
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -775,10 +777,12 @@ void Task_MainStateMachine(void *pvParameters) {
 
                       if(search == 1){
                         search = 0;
+                        movepose(0, 0, 1);//停下
                         for (int i = 0; i < 100; i++) { //网络超时10s(100ms * 100次)
                           vTaskDelay(100 / portTICK_PERIOD_MS);
                           if(next == 1){
                             next = 0;
+                            movepose(1, 10,0);//开始移动
                           } else if(netget == 1){
                             netget = 0;
                             get0ok();
@@ -903,7 +907,7 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
 
                     } else if (strcmp(rxBuffer, "get1") == 0) {
                         // 识别到锐澳
-                        getBuhuoIndex = 1;
+                        getBuhuoIndex = 5;
                         Serial.println("get1");
 
                     } else if (strcmp(rxBuffer, "get2") == 0) {
