@@ -95,32 +95,32 @@ void movepose(bool Y, float speed, bool stop) {
         isMoving = true;//标记为正在移动
         if(Y) {
             Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             Emm_V5_Vel_Control( 2, 0, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             Emm_V5_Vel_Control( 3, 1, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             Emm_V5_Vel_Control( 4, 1, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
         } else {
             Emm_V5_Vel_Control( 1, 1, speed, 50, 0);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             Emm_V5_Vel_Control( 2, 1, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             Emm_V5_Vel_Control( 3, 0, speed, 50, 1);    
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             Emm_V5_Vel_Control( 4, 0, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
         }
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(5));
         Emm_V5_Synchronous_motion(0);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        vTaskDelay(pdMS_TO_TICKS(5));
         last_position = NOW_position;
 
     } else {//停止移动
         if(isMoving) {  
             Emm_V5_Stop_Now(0, 0);
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(5));
             // 同步到全局理想位置
             // 根据当前机器人角度更新坐标
             float distance_mm = NOW_position - last_position;
@@ -495,6 +495,10 @@ bool AdjustPose() {
 
         float posThreshold = 10.0f; // 10mm
         float angleThreshold = 0.5f; // 0.5度
+
+        float posThreshold_MAX = 300.0f; // 0.5m
+        float angleThreshold_MAX = 10.0f; // 20度
+
         int maxRetries = 1; // 最大重试次数
         float adjustRatio = 1.0f;  // 矫正系数比例，用于调整微调系数
 
@@ -521,9 +525,9 @@ bool AdjustPose() {
         while (deltaTheta < -180) deltaTheta += 360;
         
         // 3. 判断是否需要调整
-        bool needAdjustX = fabs(deltaX) > posThreshold;
-        bool needAdjustY = fabs(deltaY) > posThreshold;
-        bool needAdjustTheta = fabs(deltaTheta) > angleThreshold;
+        bool needAdjustX = fabs(deltaX) > posThreshold && fabs(deltaX) < posThreshold_MAX;
+        bool needAdjustY = fabs(deltaY) > posThreshold && fabs(deltaY) < posThreshold_MAX;
+        bool needAdjustTheta = fabs(deltaTheta) > angleThreshold && fabs(deltaTheta) < angleThreshold_MAX;
         
         // 如果所有偏差都在阈值内，调整完成
         if (!needAdjustX && !needAdjustY && !needAdjustTheta) {
