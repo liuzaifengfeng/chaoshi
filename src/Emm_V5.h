@@ -44,5 +44,6 @@ void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t
 void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF); // 发送命令触发回零
 void Emm_V5_Origin_Interrupt(uint8_t addr); // 强制中断并退出回零
 void Emm_V5_Receive_Data(uint8_t *rxCmd, uint8_t *rxCount); // 返回数据接收函数
+void Emm_V5_En_Control_all(bool state); // 底盘电机使能控制
 
 #endif // EMM_V5_H

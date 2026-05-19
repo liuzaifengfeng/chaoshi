@@ -137,6 +137,24 @@ void Emm_V5_En_Control(uint8_t addr, bool state, bool snF)
 }
 
 /**
+  * @brief    底盘电机使能控制
+  * @param    state ：使能状态     ，true为使能电机，false为关闭电机
+  * @retval   地址 + 功能码 + 命令状态 + 校验字节
+  */
+void Emm_V5_En_Control_all(bool state){
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_En_Control(0, state, false);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_En_Control(1, state, false);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_En_Control(2, state, false);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  Emm_V5_En_Control(3, state, false);
+  vTaskDelay(pdMS_TO_TICKS(10));
+
+}
+
+/**
   * @brief    速度模式
   * @param    addr：电机地址
   * @param    dir ：方向       ，0为CW，其余值为CCW
