@@ -54,9 +54,11 @@ class RobotDebugger:
                 "AdjustPose": {"desc": "位置校准", "params": []},
                 "PWM": {"desc": "设置PWM", "params": ["addr", "angle"]},
                 "reset":    {"desc": "重启ESP32", "params": []},
-                "GOTOpose": {"desc": "移动坐标", "params": ["X", "Y", "Theta"]},
+                "GOTOpose": {"desc": "移动坐标(绝对)", "params": ["X", "Y", "Theta"]},
+                "GOTORpose": {"desc": "移动坐标(相对)", "params": ["X", "Y", "Theta"]},
                 "GOTOHeight": {"desc": "移动高度", "params": ["Height"]},
-                "movepose": {"desc": "直线移动", "params": ["Y", "speed", "stop"]}
+                "movepose": {"desc": "直线移动", "params": ["Y", "speed", "stop"]},
+                "En_C": {"desc": "使能底盘模式", "params": ["mode"]}
             },
             "Release": {
                 "ready": {"desc": "准备运行", "params": []},
@@ -186,7 +188,7 @@ class RobotDebugger:
         
         shelf_coords = [
             (0, 800, 500, 1800),
-            (2600, 800, 3100, 1800)
+            (2600, 800, 3100, 1800),
         ]
         
         for sc in shelf_coords:
@@ -195,12 +197,44 @@ class RobotDebugger:
             px2, py2 = self.to_canvas(sx2, sy2)
             self.canvas.create_rectangle(px1, py1, px2, py2, outline="gray", tags="field")
             
+        shelf_coords1 = [
+            (0, 850, 300, 1750),
+            (2800, 850, 3100, 1750),
+        ]
+        
+        for sc in shelf_coords1:
+            sx1, sy1, sx2, sy2 = sc
+            px1, py1 = self.to_canvas(sx1, sy1)
+            px2, py2 = self.to_canvas(sx2, sy2)
+            self.canvas.create_rectangle(px1, py1, px2, py2, outline="white", tags="field")
+            
             height = abs(sy2 - sy1)
             for i in range(1, 5):
                 line_y = sy1 + (height / 5) * i
                 lx1, ly1 = self.to_canvas(sx1, line_y)
                 lx2, ly2 = self.to_canvas(sx2, line_y)
-                self.canvas.create_line(lx1, ly1, lx2, ly2, fill="#4A4A4A", tags="field")
+                self.canvas.create_line(lx1, ly1, lx2, ly2, fill="white", tags="field")
+                
+        shelf_coords2 = [
+            (300, 850, 500, 1750),
+            (2600, 850, 2800, 1750),
+        ]
+        
+        for sc in shelf_coords2:
+            sx1, sy1, sx2, sy2 = sc
+            px1, py1 = self.to_canvas(sx1, sy1)
+            px2, py2 = self.to_canvas(sx2, sy2)
+            self.canvas.create_rectangle(px1, py1, px2, py2, outline="white", tags="field")
+            
+            height = abs(sy2 - sy1)
+            for i in range(1, 7):
+                line_y = sy1 + (height / 7) * i
+                lx1, ly1 = self.to_canvas(sx1, line_y)
+                lx2, ly2 = self.to_canvas(sx2, line_y)
+                self.canvas.create_line(lx1, ly1, lx2, ly2, fill="white", tags="field")
+                
+
+            
 
     def draw_robot(self, pose, color, is_ideal=False):
         s = self.SCALE

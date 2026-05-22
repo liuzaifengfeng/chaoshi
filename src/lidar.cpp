@@ -87,11 +87,12 @@ void movepose(bool Y, float speed, bool stop) {
             NOW_position = avg_distances[i];
             break;
         }
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }        
 
 
-    if(!stop) {//开始移动
+
+    if(!stop && !isMoving) {//开始移动且未正在移动
         isMoving = true;//标记为正在移动
         if(Y) {
             Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
@@ -117,11 +118,11 @@ void movepose(bool Y, float speed, bool stop) {
         vTaskDelay(pdMS_TO_TICKS(5));
         last_position = NOW_position;
 
-    } else {//停止移动
+    } else if(stop) {//停止移动且正在移动
         if(isMoving) {  
             Emm_V5_Stop_Now(0, 0);
             vTaskDelay(pdMS_TO_TICKS(5));
-            // 同步到全局理想位置
+            // 同步到全局理想位置       
             // 根据当前机器人角度更新坐标
             float distance_mm = NOW_position - last_position;
             if (currentPose.theta == 0) {
