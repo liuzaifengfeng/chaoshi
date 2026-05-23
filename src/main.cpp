@@ -221,7 +221,8 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoHeight(0);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-                currentState = STATE_GO_SHOPPING;
+                //currentState = STATE_GO_SHOPPING;
+                currentState = STATE_PRE_REPLENISH;
                 break;
 
             case STATE_PRE_REPLENISH:
@@ -273,14 +274,15 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 3, angleToDuty(PWM_3_close));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(50);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         GotoPose(-X_buhuo_N, 0, 0 , true, false);
                         GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
                         AdjustPose();
                         GotoHeight(640);
-                        vTaskDelay(5000 / portTICK_PERIOD_MS);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
-                        GotoHeight(600);
+                        GotoHeight(590);
+                        vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(110));
@@ -289,12 +291,12 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 3, angleToDuty(PWM_3_open));  
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(0);
-                        vTaskDelay(5000 / portTICK_PERIOD_MS);
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
                         replenishDone++;
                         getBuhuoIndex = 0;
                         GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                         GotoHeight(0);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         movepose(1, Speed_buhuo,0);                          
                       }else {
                         if(caoweiNOW != 0 ){
@@ -336,9 +338,9 @@ void Task_MainStateMachine(void *pvParameters) {
                             vTaskDelay(1000 / portTICK_PERIOD_MS);
                             caoweiNOW = buhuoNOW;
                             getBuhuoIndex = 0;
-                            GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                             GotoHeight(0);
-                            vTaskDelay(4000 / portTICK_PERIOD_MS);
+                            GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
+                            vTaskDelay(2000 / portTICK_PERIOD_MS);
                             movepose(1, Speed_buhuo,0);                          
                         }
                       }
@@ -372,14 +374,15 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 3, angleToDuty(PWM_3_close));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(50);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         GotoPose(-X_buhuo_N, 0, 0 , true, false);
                         GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
                         AdjustPose();
                         GotoHeight(640);
-                        vTaskDelay(5000 / portTICK_PERIOD_MS);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
-                        GotoHeight(600);
+                        GotoHeight(590);
+                        vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(110));
@@ -388,12 +391,12 @@ void Task_MainStateMachine(void *pvParameters) {
                         ledcWrite( 3, angleToDuty(PWM_3_open));  
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(0);
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
                         replenishDone++;
                         getBuhuoIndex = 0;
                         GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                         GotoHeight(0);
-                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        vTaskDelay(500 / portTICK_PERIOD_MS);
                         movepose(1, Speed_buhuo,0);                       
                       }else if(buhuo[buhuoNOW][2] != currentPose.theta) {
                         if(caoweiNOW != 0 ){
@@ -437,7 +440,7 @@ void Task_MainStateMachine(void *pvParameters) {
                             getBuhuoIndex = 0;
                             GotoHeight(0);
                             GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
-                            vTaskDelay(5000 / portTICK_PERIOD_MS);
+                            vTaskDelay(2000 / portTICK_PERIOD_MS);
                             movepose(1, Speed_buhuo,0);      
                         }
                       }
@@ -476,11 +479,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2], false, false);
                         AdjustPose();
                         GotoHeight(640);
-                        vTaskDelay(5000 / portTICK_PERIOD_MS);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(600);
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        GotoHeight(590);
+                        vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(110));
@@ -494,24 +497,24 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(buhuo[caoweiNOW][0], buhuo[caoweiNOW][1], buhuo[caoweiNOW][2], false, false);
                         AdjustPose();
                         GotoHeight(640);
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(120));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(470);
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        vTaskDelay(1500 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_close));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(550);
-                        vTaskDelay(1500 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
                         GotoHeight(640);
-                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(600);
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        GotoHeight(590);
+                        vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(110));
@@ -532,11 +535,11 @@ void Task_MainStateMachine(void *pvParameters) {
                   if(zhuaziNOW != 0){
                         GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2] , false, false);
                         GotoHeight(640);
-                        vTaskDelay(4000 / portTICK_PERIOD_MS);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(600);
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        GotoHeight(590);
+                        vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(110));
@@ -549,24 +552,24 @@ void Task_MainStateMachine(void *pvParameters) {
                   if(caoweiNOW != 0){
                         GotoPose(buhuo[caoweiNOW][0], buhuo[caoweiNOW][1], buhuo[caoweiNOW][2]  , false, false);
                         GotoHeight(640);
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(120));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(270));
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         GotoHeight(470);
-                        vTaskDelay(3000 / portTICK_PERIOD_MS);
+                        vTaskDelay(1500 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_close));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoHeight(550);
-                        vTaskDelay(1500 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(60));
                         GotoHeight(640);
-                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(600);
-                        vTaskDelay(500 / portTICK_PERIOD_MS);
+                        GotoHeight(590);
+                        vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(110));
@@ -592,10 +595,9 @@ void Task_MainStateMachine(void *pvParameters) {
                 Serial.println("go to tihuo");
                 Serial.println("NOW_Time: " + String(millis()-start_time) + "ms");
                 Serial.println("[3]");
-                for(int i = 0; i < 100; i++){
-                    vTaskDelay(100 / portTICK_PERIOD_MS);
-                    if(OK_){ OK_ = 0; break; }
-                }
+                vTaskDelay(6000 / portTICK_PERIOD_MS);
+
+
 
                 // 进入提货环节前，清空队列中的过期老数据
                 xQueueReset(xVisualTaskQueue);
@@ -605,9 +607,15 @@ void Task_MainStateMachine(void *pvParameters) {
                 if(currentPose.theta == 0){
                     GotoPose(X_tihuo_1, 900, 0 , false, false);
                     AdjustPose();
-                    vTaskDelay(4000 / portTICK_PERIOD_MS);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+                    for(int i = 0; i < 100; i++){
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    if(OK_){ OK_ = 0; break; }
+                    }
+
                     Serial.println("[3_1]");
-                    vTaskDelay(5000 / portTICK_PERIOD_MS);
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
                     
                     movepose(1, Speed_tihuo,0);
                     while_get0(); // 阻塞处理提货数据
@@ -615,21 +623,28 @@ void Task_MainStateMachine(void *pvParameters) {
                     Serial.println("[3_0]");
 
                     GotoPose(1600, 1800, 180 , false, false);
-                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
                     GotoPose(X_tihuo_2, 1850, 180 , false, false); 
                     AdjustPose();
-                    vTaskDelay(2000 / portTICK_PERIOD_MS);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
 
                     Serial.println("[3_1]");
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
                     movepose(1, Speed_tihuo,0);
                     while_get0(); 
                     movepose(0, 0, 1);
                 }else {
                     GotoPose(X_tihuo_2, 1800, 180 , false, false);
                     AdjustPose();
-                    vTaskDelay(4000 / portTICK_PERIOD_MS);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
+
+                    for(int i = 0; i < 100; i++){
+                    vTaskDelay(100 / portTICK_PERIOD_MS);
+                    if(OK_){ OK_ = 0; break; }
+                    }
+
                     Serial.println("[3_1]");
-                    vTaskDelay(5000 / portTICK_PERIOD_MS);
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
                     
                     movepose(1, Speed_tihuo,0);
                     while_get0();
@@ -637,12 +652,13 @@ void Task_MainStateMachine(void *pvParameters) {
                     Serial.println("[3_0]");
 
                     GotoPose(1600, 950, 0 , false, false);
-                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
                     GotoPose(X_tihuo_1, 900, 0 , false, false);
-                    vTaskDelay(1000 / portTICK_PERIOD_MS);
+                    vTaskDelay(500 / portTICK_PERIOD_MS);
                     AdjustPose();
 
                     Serial.println("[3_1]");
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
                     movepose(1, Speed_tihuo,0);
                     while_get0();
                     movepose(0, 0, 1);
@@ -665,13 +681,13 @@ void Task_MainStateMachine(void *pvParameters) {
                 }
                 GotoHeight(630);
                 GotoPose(950, 2200, 90 , false, false);
-                vTaskDelay(1000 / portTICK_PERIOD_MS);
+                vTaskDelay(500 / portTICK_PERIOD_MS);
                 AdjustPose();
                 for(int i = 0; i <= 4; i++) {
                   vTaskDelay(2000 / portTICK_PERIOD_MS);
                   if(isCustomer) {
                     Serial.println("dump: " + String(i) + " customer");
-                    GotoPose(140, -260, 0 , true, false);
+                    GotoPose(170, -260, 0 , true, false);
                     ledcWrite( 5, angleToDuty(70));
                     vTaskDelay(2000 / portTICK_PERIOD_MS);
                     ledcWrite( 5, angleToDuty(90));
@@ -697,19 +713,19 @@ void Task_MainStateMachine(void *pvParameters) {
                 ledcWrite( 4, angleToDuty(0));
                 ledcWrite( 5, angleToDuty(250));
                 ledcWrite( 2, angleToDuty(300));
-                vTaskDelay(2500 / portTICK_PERIOD_MS);
+                vTaskDelay(1500 / portTICK_PERIOD_MS);
                 GotoHeight(0);
 
                 if (isDelivered){
                   Serial.println("done,go home");
                   GotoPose(-200, 0, -90 , true, false);
-                  vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  vTaskDelay(500 / portTICK_PERIOD_MS);
                   GotoPose(0, 50, 0 , true, false);
                   GotoPose(3000, 2100, 0 , false, false);
                 } else {
                   Serial.println("not done,go home");
                   GotoPose(2200, 2100, 0 , false, false);
-                  vTaskDelay(1000 / portTICK_PERIOD_MS);
+                  vTaskDelay(500 / portTICK_PERIOD_MS);
                   AdjustPose();
                   GotoPose(3000, 2100, 0 , false, false);
                 }
@@ -966,7 +982,7 @@ void get0ok(){
   GotoPose(-X_tihuo_N, 0, 0 , true, false);
   GotoHeight(550);
   GotoPose(0, 20, 0 , true, false);
-  vTaskDelay(3000 / portTICK_PERIOD_MS);
+  vTaskDelay(2000 / portTICK_PERIOD_MS);
   ledcWrite( 2, angleToDuty(185));
   vTaskDelay(2000 / portTICK_PERIOD_MS);
   ledcWrite( 3, angleToDuty(PWM_3_helf));
@@ -976,7 +992,7 @@ void get0ok(){
   vTaskDelay(1000 / portTICK_PERIOD_MS); 
   GotoHeight(315);
   GotoPose(X_tihuo_N - X_tihuo_P, 0, 0 , true, false);
-  vTaskDelay(3000 / portTICK_PERIOD_MS);
+  vTaskDelay(1000 / portTICK_PERIOD_MS);
   
   deliverDone++;
   movepose(1, 10,0);

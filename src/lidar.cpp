@@ -61,7 +61,7 @@ void TaskLidarProcess(void *pvParameters) {
  * @return void
  */
 void GotoHeight(float height) {
-    int speed = 150;//移动速度  
+    int speed = 250;//移动速度  
     if(height < 0 || height > 640) {
         return;//高度超出范围
     }
@@ -546,7 +546,7 @@ bool AdjustPose() {
         int maxRetries = 1; // 最大重试次数
         float adjustRatio = 1.0f;  // 矫正系数比例，用于调整微调系数
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(100));
     
     while (retryCount < maxRetries) {
         // 1. 获取实际位置
