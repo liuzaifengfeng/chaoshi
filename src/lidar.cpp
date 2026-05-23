@@ -88,7 +88,7 @@ void movepose(bool Y, float speed, bool stop) {
             break;
         }
         vTaskDelay(pdMS_TO_TICKS(10));
-    }        
+    }
 
 
 
@@ -117,6 +117,9 @@ void movepose(bool Y, float speed, bool stop) {
         Emm_V5_Synchronous_motion(0);
         vTaskDelay(pdMS_TO_TICKS(5));
         last_position = NOW_position;
+
+        Serial.println("movepose_ing");
+
 
     } else if(stop) {//停止移动且正在移动
         if(isMoving) {  

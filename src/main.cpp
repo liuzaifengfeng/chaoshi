@@ -56,10 +56,10 @@
 //四个待补货商品位置（二维数组），{ x坐标, y坐标, theta角度, 是否完成}
 float buhuo[5][4] = { // 商品位置 180 * i(取1-5)，从下往上数
     {0, 0, 0, 0}, // 商品0 空 
-    {2185, 840+180*2, 0, 0}, // 商品2 百事可乐
+    {910, 700+180*4, 180, 0}, // 商品2 百事可乐
     {2185, 840+180*4, 0, 0}, // 商品3 旺仔牛奶
     {910, 700+180*2, 180, 0}, // 商品4 维他奶
-    {910, 700+180*4, 180, 0}, // 商品5（1） 锐澳水蜜桃 
+    {2185, 840+180*2, 0, 0}, // 商品5（1） 锐澳水蜜桃 
 };
 
 volatile int getBuhuoIndex = 0;//当前需要补货的商品索引
@@ -284,7 +284,7 @@ void Task_MainStateMachine(void *pvParameters) {
                 AdjustPose();
                 GotoHeight(0);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
-              
+
                currentState = STATE_PRE_REPLENISH;//
                //currentState = STATE_GO_SHOPPING;
                break;
@@ -382,7 +382,7 @@ void Task_MainStateMachine(void *pvParameters) {
                           movepose(1, Speed_buhuo,0);//继续移动                          
                         }
                       }else {//不在同侧，先放在料台或爪子上
-                        if(caoweiNOW != 0 || replenishDone == 1){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架一已完成（只有这个了）
+                        if(caoweiNOW != 0 ){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架一已完成（只有这个了）
                         //抓取动作
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -501,7 +501,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         movepose(1, Speed_buhuo,0);//继续移动                       
 
                       }else if(buhuo[buhuoNOW][2] != currentPose.theta) {//不在同侧，先放在料台
-                        if(caoweiNOW != 0 || replenishDone == 3){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架二已完成（只有这个了）
+                        if(caoweiNOW != 0 ){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架二已完成（只有这个了）
                         //抓取动作
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -919,43 +919,43 @@ void Task_Main_Serial0_CMD(void *pvParameters) {
                     // 处理指令
                     if (strstr(rxBuffer, "ready") != 0) {
                       // 视觉初始化完成逻辑
-                        Serial.println("ready");      
+                        Serial.println("ready->");      
                         ready = true;
 
                     } else if (strcmp(rxBuffer, "orderget") == 0) {
                        // 确认提货订单商品
                         isOrderReceived = true;
-                        Serial.println("orderget");
+                        Serial.println("orderget->");
 
                     } else if (strcmp(rxBuffer, "get1") == 0) {
                         // 识别到锐澳
                         getBuhuoIndex = 5;
-                        Serial.println("get1");
+                        Serial.println("get1->");
 
                     } else if (strcmp(rxBuffer, "get2") == 0) {
                         // 识别到百事
                         getBuhuoIndex = 2;
-                        Serial.println("get2");
+                        Serial.println("get2->");
 
                     } else if (strcmp(rxBuffer, "get3") == 0) {
                         // 识别到旺仔
                         getBuhuoIndex = 3;
-                        Serial.println("get3");
+                        Serial.println("get3->");
 
                     } else if (strcmp(rxBuffer, "get4") == 0) {
                         // 识别到维他奶
                         getBuhuoIndex = 4;
-                        Serial.println("get4");
+                        Serial.println("get4->");
 
                     } else if (strcmp(rxBuffer, "get0") == 0) {
                         // 识别到提货商品
                         isinorder = true;
-                        Serial.println("get0");
+                        Serial.println("get0->");
 
                     } else if (strcmp(rxBuffer, "true") == 0) {
                         // 识别到顾客
                         isCustomer = true;
-                        Serial.println("true");
+                        Serial.println("true->");
 
                     } else if (strstr(rxBuffer, "[") != NULL && strstr(rxBuffer, "]") != NULL) {
                         // 解析[dx]格式的命令
@@ -1353,6 +1353,8 @@ void while_get0(){
     if(isinorder != 0 || search != 0) {
       if(search != 0){
         search = 0;
+        next = 0;
+        netget = 0;
         movepose(0, 0, 1);//停下
         for (int i = 0; i < 1000; i++) { //网络超时10s(10ms * 1000次)
           vTaskDelay(10 / portTICK_PERIOD_MS);

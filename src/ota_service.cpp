@@ -69,10 +69,10 @@ static void wifi_task(void *pvParameters) {
 
             if (wifi_ssid != nullptr && wifi_password != nullptr) {
                 if (WiFi.status() != WL_CONNECTED) {
-                    Serial.println("try connecting to WiFi... " + String(wifi_ssid) + " " + String(wifi_password));
+                    //Serial.println("try connecting to WiFi... " + String(wifi_ssid) + " " + String(wifi_password));
                     WiFi.begin(wifi_ssid, wifi_password);
                 }
-            vTaskDelay(pdMS_TO_TICKS(20000));
+            vTaskDelay(pdMS_TO_TICKS(110000));
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10000));
