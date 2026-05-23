@@ -21,7 +21,7 @@
 #define LED_PIN 48
 #define NUM_LEDS 1
 #define OTA_HOSTNAME "espchaoshi"
-#define VERSION "2.0.0"
+#define VERSION "2.1.0"
 
 #define Speed_buhuo 15//补货速度，mm/s
 #define Speed_tihuo 10//提货速度，mm/s
@@ -34,13 +34,13 @@
 #define X_tihuo_2 840//货架2 提货位置X坐标
 
 #define X_buhuo_P 80//货架1/2 提取补货正位移X坐标
-#define X_buhuo_N 180//货架1/2 提取补货负位移X坐标
+#define X_buhuo_N 130//货架1/2 提取补货负位移X坐标
 #define X_tihuo_P 80//货架1/2 提货正位移X坐标
 #define X_tihuo_N 180//货架1/2 提货负位移X坐标
 
 #define X_buhuo_put 200//货架1/2 补货放位X位移
-
-#define PWM_3_helf 130 //夹爪半开
+       
+#define PWM_3_helf 135 //夹爪半开
 #define PWM_3_close 170 //夹爪关闭
 #define PWM_3_open 0 //夹爪打开
 
@@ -58,8 +58,8 @@ float buhuo[5][4] = { // 商品位置 180 * i(取1-5)，从下往上数
     {0, 0, 0, 0}, // 商品0 空 
     {2185, 840+180*2, 0, 0}, // 商品2 百事可乐
     {2185, 840+180*4, 0, 0}, // 商品3 旺仔牛奶
-    {910, 700+180*4, 180, 0}, // 商品4 维他奶
-    {910, 700+180*2, 180, 0}, // 商品5（1） 锐澳水蜜桃 
+    {910, 700+180*2, 180, 0}, // 商品4 维他奶
+    {910, 700+180*4, 180, 0}, // 商品5（1） 锐澳水蜜桃 
 };
 
 volatile int getBuhuoIndex = 0;//当前需要补货的商品索引
@@ -353,6 +353,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(-X_buhuo_N, 0, 0 , true, false);
                         //前往补货位置
                         GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                        AdjustPose();
                         //放置动作
                         GotoHeight(640);
                         vTaskDelay(5000 / portTICK_PERIOD_MS);
@@ -476,6 +477,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(-X_buhuo_N, 0, 0 , true, false);
                         //前往补货位置
                         GotoPose(buhuo[buhuoNOW][0], buhuo[buhuoNOW][1], buhuo[buhuoNOW][2], false, false);
+                        AdjustPose();
                         //放置动作
                         GotoHeight(640);
                         vTaskDelay(5000 / portTICK_PERIOD_MS);
@@ -492,17 +494,12 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
                         replenishDone++;//补货完成一次，记录补货次数
                         getBuhuoIndex = 0;//清清补货商品索引
-                        if(replenishDone == 4){//补货已经完成一次，加上此次，货架一已完成
-                          isReplenishDone_2 = true;
-                          currentState = STATE_DO_REPLENISH;//执行补货
-                          break;
-                        }else{
-                          //返回上个位置
-                          GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
-                          GotoHeight(0);
-                          vTaskDelay(1000 / portTICK_PERIOD_MS);
-                          movepose(1, Speed_buhuo,0);//继续移动                          
-                        }
+                        //返回上个位置
+                        GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
+                        GotoHeight(0);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
+                        movepose(1, Speed_buhuo,0);//继续移动                       
+
                       }else if(buhuo[buhuoNOW][2] != currentPose.theta) {//不在同侧，先放在料台
                         if(caoweiNOW != 0 || replenishDone == 3){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架二已完成（只有这个了）
                         //抓取动作
@@ -517,7 +514,6 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(-X_buhuo_N, 0, 0 , true, false);
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         zhuaziNOW = buhuoNOW;//记录当前爪子物品
-                        //isReplenishDone_2 = true;
                         getBuhuoIndex = 0;//清清补货商品索引
                         currentState = STATE_DO_REPLENISH;//执行补货
                         break;
@@ -607,6 +603,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   if(zhuaziNOW != 0){//爪子上有物品
                         GotoPose(buhuo[zhuaziNOW][0], buhuo[zhuaziNOW][1], buhuo[zhuaziNOW][2], false, false);
+                        AdjustPose();
                         //放置动作
                         GotoHeight(640);
                         vTaskDelay(5000 / portTICK_PERIOD_MS);
@@ -625,9 +622,10 @@ void Task_MainStateMachine(void *pvParameters) {
                     }
                   if(caoweiNOW != 0){
                         GotoPose(buhuo[caoweiNOW][0], buhuo[caoweiNOW][1], buhuo[caoweiNOW][2], false, false);
+                        AdjustPose();
                         //从槽位上抓取动作
                         GotoHeight(640);
-                        vTaskDelay(5000 / portTICK_PERIOD_MS);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(120));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(270));
@@ -685,7 +683,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoPose(buhuo[caoweiNOW][0], buhuo[caoweiNOW][1], buhuo[caoweiNOW][2]  , false, false);
                         //从槽位上抓取动作
                         GotoHeight(640);
-                        vTaskDelay(5000 / portTICK_PERIOD_MS);
+                        vTaskDelay(3000 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(120));
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         ledcWrite( 2, angleToDuty(270));
@@ -800,7 +798,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   //从中间过去，随便校准
                   GotoPose(1600, 950, 0 , false, false);
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
-                  GotoPose(X_tihuo_1, 950, 0 , false, false);
+                  GotoPose(X_tihuo_1, 900, 0 , false, false);
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   AdjustPose();
 
@@ -844,7 +842,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   if(isCustomer) {
                     //倒料
                     Serial.println("dump: " + String(i) + " customer");
-                    GotoPose(130, -260, 0 , true, false);
+                    GotoPose(110, -260, 0 , true, false);
                     ledcWrite( 5, angleToDuty(70));
                     vTaskDelay(2000 / portTICK_PERIOD_MS);
                     ledcWrite( 5, angleToDuty(90));
@@ -882,12 +880,12 @@ void Task_MainStateMachine(void *pvParameters) {
                   GotoPose(-200, 0, -90 , true, false);
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
                   GotoPose(0, 50, 0 , true, false);
-                  GotoPose(2900, 2200, 0 , false, false);
+                  GotoPose(3000, 2200, 0 , false, false);
                 } else {//交付未完成，强制回家
                   Serial.println("not done,go home");
                   GotoPose(2200, 2200, 0 , false, false);
                   vTaskDelay(1000 / portTICK_PERIOD_MS);
-                  GotoPose(2900, 2200, 0 , false, false);
+                  GotoPose(3000, 2200, 0 , false, false);
                 }
                 
                 //打印完成情况
