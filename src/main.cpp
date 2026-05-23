@@ -110,6 +110,26 @@ typedef struct {
   float param3;           // 参数3
 } DebugCommand_t;
 
+
+extern SemaphoreHandle_t xSerialMutex; // 声明
+
+// 编写一个带锁的执行宏
+#define SAFE_SERIAL_LOCK(action) do { \
+    if (xSerialMutex != NULL && xPortInIsrContext() == false) { \
+        if (xSemaphoreTake(xSerialMutex, portMAX_DELAY) == pdTRUE) { \
+            action; \
+            xSemaphoreGive(xSerialMutex); \
+        } \
+    } else { \
+        action; \
+    } \
+} while(0)
+
+// 定义你的全局 Xprint（支持可变参数）
+#define Xprint(...)   SAFE_SERIAL_LOCK(Serial.print(__VA_ARGS__))
+#define Xprintln(...) SAFE_SERIAL_LOCK(Serial.println(__VA_ARGS__))
+#define Xprintf(...)  SAFE_SERIAL_LOCK(Serial.printf(__VA_ARGS__))
+
 // ================= 函数声明 =================
 
 void Task_MainStateMachine(void *pvParameters);//主状态机任务函数（正常运行模式）
@@ -285,8 +305,8 @@ void Task_MainStateMachine(void *pvParameters) {
                 GotoHeight(0);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);
 
-               currentState = STATE_PRE_REPLENISH;//
-               //currentState = STATE_GO_SHOPPING;
+               //currentState = STATE_PRE_REPLENISH;//
+               currentState = STATE_GO_SHOPPING;
                break;
 /**************************************************************/
 //               前往货架1/2的第一层抓取补货物品
@@ -370,17 +390,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(5000 / portTICK_PERIOD_MS);
                         replenishDone++;//补货完成一次，记录补货次数
                         getBuhuoIndex = 0;//清清补货商品索引
-                        if(replenishDone == 2){//补货已经完成一次，加上此次，货架一已完成
-                          isReplenishDone_1 = true;
-                          currentState = STATE_DO_REPLENISH;//执行补货
-                          break;
-                        }else{
                           //返回上个位置
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           GotoHeight(0);
                           vTaskDelay(1000 / portTICK_PERIOD_MS);
                           movepose(1, Speed_buhuo,0);//继续移动                          
-                        }
                       }else {//不在同侧，先放在料台或爪子上
                         if(caoweiNOW != 0 ){//槽位已有物品，抓在手上,或补货已经完成一次，加上此次，货架一已完成（只有这个了）
                         //抓取动作
@@ -424,18 +438,11 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         caoweiNOW = buhuoNOW;//记录当前槽位物品
                         getBuhuoIndex = 0;//清清补货商品索引
-                        if(replenishDone == 1){//补货已经完成一次，加上此次，货架一已完成
-                          isReplenishDone_1 = true;
-                          currentState = STATE_DO_REPLENISH;//执行补货
-                          break;
-                        }else{
                           //返回上个位置
                           GotoPose(lastpose.x, lastpose.y, lastpose.theta, false, false);
                           GotoHeight(0);
                           vTaskDelay(4000 / portTICK_PERIOD_MS);
                           movepose(1, Speed_buhuo,0);//继续移动                          
-                        }
-
                         }
                       }
                     }
@@ -1217,6 +1224,8 @@ void setup() {
   // 初始化串口
   Serial.begin(115200);
 
+  xSerialMutex = xSemaphoreCreateMutex();//创建串口互斥锁，用于保护串口打印
+
   // 初始化PWM
   initPWM();
   // 初始化雷达
@@ -1349,9 +1358,10 @@ void get0ok(){//提货动作
  */
 void while_get0(){
   while(avg_distances[0] < 1600 ){
-    vTaskDelay(20 / portTICK_PERIOD_MS);
-    if(isinorder != 0 || search != 0) {
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+
       if(search != 0){
+        Serial.println("search->");
         search = 0;
         next = 0;
         netget = 0;
@@ -1368,12 +1378,14 @@ void while_get0(){
             Serial.println("netget->");
             netget = 0;
             get0ok();
-         }
+          }
         }
-      } else{
+        movepose(1, 10,0);    //继续向前开
+      } 
+
+      if(isinorder != 0){
         get0ok();
       }
-    }
-    movepose(1, 10,0);//继续向前开
+
   }
 }

@@ -82,50 +82,18 @@ void movepose(bool Y, float speed, bool stop) {
     static int last_position = 0;//激光上次位置（角度）
     static bool isMoving = false;//是否正在移动
 
-    for(int i = 0; i < 3; i++) {
-        if(avg_distances[i] > 0) {
-            NOW_position = avg_distances[i];
-            break;
-        }
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-
-
-
-    if(!stop && !isMoving) {//开始移动且未正在移动
-        isMoving = true;//标记为正在移动
-        if(Y) {
-            Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(5));
-            Emm_V5_Vel_Control( 2, 0, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(5));
-            Emm_V5_Vel_Control( 3, 1, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(5));
-            Emm_V5_Vel_Control( 4, 1, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(5));
-        } else {
-            Emm_V5_Vel_Control( 1, 1, speed, 50, 0);
-            vTaskDelay(pdMS_TO_TICKS(5));
-            Emm_V5_Vel_Control( 2, 1, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(5));
-            Emm_V5_Vel_Control( 3, 0, speed, 50, 1);    
-            vTaskDelay(pdMS_TO_TICKS(5));
-            Emm_V5_Vel_Control( 4, 0, speed, 50, 1);
-            vTaskDelay(pdMS_TO_TICKS(5));
-        }
-        vTaskDelay(pdMS_TO_TICKS(5));
-        Emm_V5_Synchronous_motion(0);
-        vTaskDelay(pdMS_TO_TICKS(5));
-        last_position = NOW_position;
-
-        Serial.println("movepose_ing");
-
-
-    } else if(stop) {//停止移动且正在移动
+    if(stop) {//停止移动，最先判断
         if(isMoving) {  
             Emm_V5_Stop_Now(0, 0);
             vTaskDelay(pdMS_TO_TICKS(5));
             // 同步到全局理想位置       
+                for(int i = 0; i < 3; i++) {
+                    if(avg_distances[i] > 0) {
+                        NOW_position = avg_distances[i];
+                        break;
+                    }
+                    vTaskDelay(pdMS_TO_TICKS(10));
+                }
             // 根据当前机器人角度更新坐标
             float distance_mm = NOW_position - last_position;
             if (currentPose.theta == 0) {
@@ -147,6 +115,78 @@ void movepose(bool Y, float speed, bool stop) {
             Serial.println("Not moving");
         }
     }
+
+
+    if(!stop) {//开始移动
+        if(!isMoving) {
+            for(int i = 0; i < 3; i++) {
+            if(avg_distances[i] > 0) {
+                NOW_position = avg_distances[i];
+                break;
+            }
+            vTaskDelay(pdMS_TO_TICKS(10));
+            }
+            isMoving = true;//标记为正在移动
+            if(Y) {
+                Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 2, 0, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 3, 1, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 4, 1, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+            } else {
+                Emm_V5_Vel_Control( 1, 1, speed, 50, 0);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 2, 1, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 3, 0, speed, 50, 1);    
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 4, 0, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+            }
+            vTaskDelay(pdMS_TO_TICKS(5));
+            Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(5));
+            last_position = NOW_position;
+
+            Serial.println("start move");
+    
+        } else {
+            isMoving = true;//标记为正在移动
+            if(Y) {
+                Emm_V5_Vel_Control( 1, 0, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 2, 0, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 3, 1, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 4, 1, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+            } else {
+                Emm_V5_Vel_Control( 1, 1, speed, 50, 0);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 2, 1, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 3, 0, speed, 50, 1);    
+                vTaskDelay(pdMS_TO_TICKS(5));
+                Emm_V5_Vel_Control( 4, 0, speed, 50, 1);
+                vTaskDelay(pdMS_TO_TICKS(5));
+            }
+            vTaskDelay(pdMS_TO_TICKS(5));
+            Emm_V5_Synchronous_motion(0);
+            vTaskDelay(pdMS_TO_TICKS(5));
+            last_position = NOW_position;
+
+            Serial.println("restart move");
+    
+            
+        }
+        
+
+    } 
+
 }
 
 /**
