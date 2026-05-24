@@ -72,10 +72,10 @@ static void wifi_task(void *pvParameters) {
                     //Serial.println("try connecting to WiFi... " + String(wifi_ssid) + " " + String(wifi_password));
                     WiFi.begin(wifi_ssid, wifi_password);
                 }
-            vTaskDelay(pdMS_TO_TICKS(410000));
+            vTaskDelay(pdMS_TO_TICKS(4100000));
             }
         }
-        vTaskDelay(pdMS_TO_TICKS(10000));
+        vTaskDelay(pdMS_TO_TICKS(1000000));
     }
 }
 

@@ -52,13 +52,22 @@ enum VisualCmdType {
     VISUAL_CMD_OK
 };
 
+// //四个待补货商品位置（二维数组），{ x坐标, y坐标, theta角度, 是否完成}
+// float buhuo[5][4] = { // 商品位置 180 * i(取1-5)，从下往上数
+//     {0, 0, 0, 0}, // 商品0 空 
+//     {2185, 840+180*2, 0, 0}, // 商品2 百事可乐
+//     {910, 700+180*2, 180, 0}, // 商品3 旺仔牛奶
+//     {910, 700+180*4, 180, 0}, // 商品4 维他奶
+//     {2185, 840+180*4, 0, 0}, // 商品5（1） 锐澳水蜜桃 
+// };
+
 // 待补货商品位置
 float buhuo[5][4] = { 
-    {0, 0, 0, 0}, 
-    {910, 700+180*4, 180, 0}, 
-    {2185, 840+180*4, 0, 0}, 
-    {910, 700+180*2, 180, 0}, 
-    {2185, 840+180*2, 0, 0}, 
+    {0, 0, 0, 0}, //
+    {2185, 840+180*2, 0, 0}, // 商品2 百事可乐
+    {2185, 840+180*4, 0, 0}, // 商品3 旺仔牛奶
+    {910, 700+180*2, 180, 0}, // 商品4 维他奶
+    {910, 700+180*4, 180, 0}, // 商品5（1） 锐澳水蜜桃 
 };
 
 volatile int getBuhuoIndex = 0;
@@ -281,7 +290,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoHeight(640);
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
-                        GotoHeight(590);
+                        GotoHeight(595);
                         vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -381,7 +390,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         GotoHeight(640);
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(200, 0, 0 , true, false);
-                        GotoHeight(590);
+                        GotoHeight(595);
                         vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -482,7 +491,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(590);
+                        GotoHeight(595);
                         vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -513,7 +522,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(590);
+                        GotoHeight(595);
                         vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -538,7 +547,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(3000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(590);
+                        GotoHeight(595);
                         vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -568,7 +577,7 @@ void Task_MainStateMachine(void *pvParameters) {
                         vTaskDelay(1000 / portTICK_PERIOD_MS);
                         GotoPose(X_buhuo_put, 0, 0 , true, false);
                         vTaskDelay(500 / portTICK_PERIOD_MS);
-                        GotoHeight(590);
+                        GotoHeight(595);
                         vTaskDelay(800 / portTICK_PERIOD_MS);
                         ledcWrite( 3, angleToDuty(PWM_3_helf));
                         vTaskDelay(400 / portTICK_PERIOD_MS);
@@ -687,7 +696,7 @@ void Task_MainStateMachine(void *pvParameters) {
                   vTaskDelay(2000 / portTICK_PERIOD_MS);
                   if(isCustomer) {
                     Serial.println("dump: " + String(i) + " customer");
-                    GotoPose(170, -260, 0 , true, false);
+                    GotoPose(170, -280, 0 , true, false);
                     ledcWrite( 5, angleToDuty(70));
                     vTaskDelay(2000 / portTICK_PERIOD_MS);
                     ledcWrite( 5, angleToDuty(90));
@@ -956,9 +965,9 @@ void setup() {
     xHomeTimer = xTimerCreate("HomeTimer", xTimerPeriod, pdFALSE, (void *)0, vHomeTimerCallback);
   }
 
-  xTaskCreate(Task_Debug_pose, "Task_Debug_pose", 4096, NULL, 4, NULL);
-  Serial.println("Supermarket robot initialized");
-  Serial.println("Version: " + String(VERSION));
+  //xTaskCreate(Task_Debug_pose, "Task_Debug_pose", 4096, NULL, 4, NULL);
+  //Serial.println("Supermarket robot initialized");
+  //Serial.println("Version: " + String(VERSION));
 }
 
 void loop() {
